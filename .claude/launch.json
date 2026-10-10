@@ -9,7 +9,7 @@
         "http.server",
         "4317",
         "--directory",
-        "/Users/samuel/Repository Samu/Mod_claude/regia/preview"
+        "regia/preview"
       ],
       "port": 4317
     }

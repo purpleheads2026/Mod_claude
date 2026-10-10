@@ -8,8 +8,8 @@ strumenti usati, contesto/costo/rate limit — dentro un pannello del Code tab.
 
 | Copia | Percorso | Ruolo |
 | --- | --- | --- |
-| **Installata (fonte)** | `regia/` (questa repo) | Plugin `regia@mod-claude`, scope utente, nel profilo `~/.claude-purpleheads`. Il marketplace è questa cartella e l'engine legge il plugin **direttamente da qui** (`claude plugin list` → `Read from:`): si modifica qui, poi `/reload-plugins` nelle sessioni aperte. Le sessioni nuove lo caricano da sole. |
-| Sviluppo storico | `~/.claude-purpleheads/dev-mods/<session-id>/regia/` | Copia con hot reload della sola sessione in cui è nato il mod. In quella sessione non lanciare `/reload-plugins`: due copie con lo stesso nome scriverebbero lo stesso stato e conterebbero tutto due volte. `scripts/sync.sh` la riporta nella repo. |
+| **Installata (fonte)** | `regia/` (questa repo) | Plugin `regia@mod-claude`, scope utente, nel profilo di configurazione (`$CLAUDE_CONFIG_DIR`, di default `~/.claude`). Il marketplace è questa cartella e l'engine legge il plugin **direttamente da qui** (`claude plugin list` → `Read from:`): si modifica qui, poi `/reload-plugins` nelle sessioni aperte. Le sessioni nuove lo caricano da sole. |
+| Sviluppo storico | `$CLAUDE_CONFIG_DIR/dev-mods/<session-id>/regia/` | Copia con hot reload della sola sessione in cui è nato il mod. In quella sessione non lanciare `/reload-plugins`: due copie con lo stesso nome scriverebbero lo stesso stato e conterebbero tutto due volte. `scripts/sync.sh` la riporta nella repo. |
 
 ## Struttura della repo
 
@@ -89,7 +89,8 @@ desktop e non capisce i moduli di hook: per validare e testare usa il binario de
 desktop (2.1.293 al momento):
 
 ```bash
-CC="$HOME/Library/Application Support/Claude-purpleheads/claude-code/2.1.293/8433d0d9cd0d/claude.app/Contents/MacOS/claude"
+# il binario che usa l'app desktop (su macOS sotto ~/Library/Application Support/Claude/claude-code/<versione>/)
+CC="$HOME/Library/Application Support/Claude/claude-code/<versione>/<build>/claude.app/Contents/MacOS/claude"
 "$CC" plugin validate regia      # manifest + modulo come li legge l'engine
 "$CC" plugin test regia          # test in tests/
 node regia/preview/build.mjs     # anteprima → regia/preview/{index,live}.html (server: .claude/launch.json)
@@ -104,10 +105,10 @@ Regole da ricordare:
   sostituirebbe le immagini, l'altezza oscillerebbe e lo scroll andrebbe in loop
   (+1/−1 riga all'infinito, bug misurato il 2026-10-10 con una sonda).
 
-Installazione (già fatta il 2026-10-10, con il binario del desktop e `CLAUDE_CONFIG_DIR=~/.claude-purpleheads`):
+Installazione (già fatta il 2026-10-10), dalla root della repo, con il binario del desktop e lo stesso `CLAUDE_CONFIG_DIR` dell'app:
 
 ```bash
-"$CC" plugin marketplace add "/Users/samuel/Repository Samu/Mod_claude"
+"$CC" plugin marketplace add "$PWD"
 "$CC" plugin install regia@mod-claude --scope user
 ```
 
