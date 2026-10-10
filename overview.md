@@ -112,8 +112,9 @@ Installazione (già fatta il 2026-10-10, con il binario del desktop e `CLAUDE_CO
 
 Aggiornare: modificare `regia/`, alzare `version` in `regia/.claude-plugin/plugin.json`,
 poi `/reload-plugins` in ogni sessione aperta. Disinstallare: `"$CC" plugin uninstall regia@mod-claude`.
-Condivisione con altri: pubblicare la repo su GitHub → `/plugin install regia --marketplace <owner>/<repo>`
-(da terminale).
+GitHub: [purpleheads2026/Mod_claude](https://github.com/purpleheads2026/Mod_claude) (privata, branch `main`).
+Installare da lì su un'altra macchina, da terminale (serve accesso alla repo):
+`/plugin install regia --marketplace purpleheads2026/Mod_claude`.
 
 ## Design
 
