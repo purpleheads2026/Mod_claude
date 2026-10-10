@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "regia-preview",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "4317",
+        "--directory",
+        "/Users/samuel/Repository Samu/Mod_claude/regia/preview"
+      ],
+      "port": 4317
+    }
+  ]
+}

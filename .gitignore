@@ -1,0 +1,6 @@
+regia/.claude-plugin/types/
+regia/preview/.cache/
+regia/preview/index.html
+regia/preview/live.html
+regia/tsconfig.json
+.DS_Store

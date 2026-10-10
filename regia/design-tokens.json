@@ -1,0 +1,117 @@
+{
+  "_comment": "FONTE DI VERITA' della Regia. hooks/svg.ts (oggetti C, CATEGORY, costanti di layout e <style>) usa SOLO questi valori. Non e' un sito: e' una parete di monitor SVG dentro il Code tab, quindi niente clamp/breakpoint; le misure sono px di viewBox. Se serve un valore nuovo si aggiunge QUI prima.",
+  "spacing": {
+    "_comment": "Scala 4px. PAD laterale = 4, gap tra tile/chip = 2, respiro tra blocchi = 5.",
+    "1": "4px",
+    "2": "8px",
+    "3": "12px",
+    "4": "16px",
+    "5": "24px"
+  },
+  "typography": {
+    "font-families": {
+      "label": "ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, monospace",
+      "number": "'DIN Alternate', 'DIN Condensed', 'Bahnschrift', ui-monospace, monospace"
+    },
+    "scale": {
+      "cap": {
+        "size": "9.5px",
+        "weight": 400,
+        "letter-spacing": "0.16em",
+        "use": "Etichette maiuscole, contatori di testata, assi"
+      },
+      "small": {
+        "size": "10px",
+        "weight": 400,
+        "use": "Meta, sottotitoli dei tile, legende"
+      },
+      "body": {
+        "size": "11px",
+        "weight": 400,
+        "use": "Testo corrente: descrizioni, nomi file e strumenti"
+      },
+      "head": {
+        "size": "10px",
+        "weight": 600,
+        "letter-spacing": "0.18em",
+        "use": "Titolo di ogni monitor (uno per SVG)"
+      },
+      "status": {
+        "size": "12px",
+        "weight": 700,
+        "letter-spacing": "0.2em",
+        "use": "IN ONDA / IN ATTESA, solo nella testata"
+      },
+      "num-sm": {
+        "size": "14px",
+        "family": "number",
+        "use": "Valori in riga: conteggi, percentuali dei limiti"
+      },
+      "num-lg": {
+        "size": "24px",
+        "family": "number",
+        "use": "Numeri eroe: cronometro, tile di strumentazione"
+      }
+    }
+  },
+  "color": {
+    "_comment": "Hex congelati. Superficie scura sempre (schermi di regia). Categoriale = palette scura validata con dataviz/validate_palette.js su #15171B: ALL CHECKS PASS (adjacent CVD 8.4, normal 19.3, contrasto >= 3:1). Ordine fisso, mai ciclato. Stato = palette di stato fissa, sempre con etichetta.",
+    "space": {
+      "base": {
+        "screen": "#15171B",
+        "raised": "#1C1F25",
+        "frame": "#2A2E36",
+        "grid": "#22252C",
+        "track": "#262A31",
+        "ink": "#F1EEE6",
+        "ink-2": "#B4B0A6",
+        "ink-3": "#8D8B84",
+        "system": "#8F8A7F"
+      },
+      "status": {
+        "running": "#fab219",
+        "good": "#0ca30c",
+        "bad": "#d03b3b",
+        "wait": "#8C93A1"
+      },
+      "category": {
+        "read": "#3987e5",
+        "write": "#d95926",
+        "shell": "#199e70",
+        "web": "#c98500",
+        "agent": "#d55181",
+        "skill": "#008300",
+        "mcp": "#9085e9",
+        "other": "#5E636D"
+      }
+    }
+  },
+  "motion": {
+    "_comment": "Motion in motion.ts (unica fonte di keyframes e durate). Ogni ridisegno sostituisce il documento SVG: le animazioni sono agganciate all'orologio reale con animation-delay negativo (eventi: -eta' dell'evento; cicli: -(ora mod periodo)), cosi' restano continue. Solo transform/opacity (+ stroke-dashoffset). Reduced motion: cade il movimento, restano le dissolvenze.",
+    "easing": {
+      "out": "cubic-bezier(.23,1,.32,1) — entrate, onde, crescita delle barre",
+      "in-out": "cubic-bezier(.77,0,.175,1) — respiro, luce che scorre sulle schede",
+      "linear": "tempo: rotazione del radar, scorrimento della timeline, flussi"
+    },
+    "duration": {
+      "rise": "240ms entrata scheda agente",
+      "pop": "280ms entrata satellite / chip skill (da scale .9, mai da 0)",
+      "ripple": "700ms onda per ogni strumento (nucleo, satellite, scintilla)",
+      "burst": "900ms nascita e fine di un agente",
+      "flash": "1200ms riga file toccato, bordo scheda all'esito",
+      "grow": "700ms barre e anello del contesto dal valore precedente al nuovo",
+      "breathe": "1200ms alternate: nucleo in onda, chiamate in corso, skill attive",
+      "ping": "1600ms alone delle spie",
+      "flow": "800ms tratteggio dei fasci verso gli operatori",
+      "scan": "2400ms luce sul bordo delle schede in corso",
+      "orbit": "6000ms alone rotante dei satelliti in corso",
+      "sweep": "60000ms giro del radar = finestra di 60 s (6 gradi al secondo)"
+    }
+  },
+  "radius": {
+    "bar": "2px",
+    "md": "8px",
+    "frame": "12px",
+    "pill": "13px (meta' dell'altezza chip 26px)"
+  }
+}
