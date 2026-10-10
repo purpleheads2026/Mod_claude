@@ -21,7 +21,7 @@ claude --version
 
 ## Installazione
 
-La repo è un marketplace di plugin: il plugin si chiama `regia`, il marketplace `mod-claude`. La repo è privata, quindi serve un account GitHub con accesso.
+La repo è un marketplace di plugin: il plugin si chiama `regia`, il marketplace `mod-claude`.
 
 ### Da GitHub, con il comando nella sessione
 
