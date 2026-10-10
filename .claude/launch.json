@@ -12,6 +12,18 @@
         "regia/preview"
       ],
       "port": 4317
+    },
+    {
+      "name": "regia-docs",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "4318",
+        "--directory",
+        "docs"
+      ],
+      "port": 4318
     }
   ]
 }

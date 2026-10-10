@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Regia — a live control room for Claude Code</title>
+<meta name="description" content="Regia is a Claude Code plugin: a live, animated control room for your sessions. Agents, skills, tool calls, context and usage limits on one radar, inside the Code tab.">
+<meta name="color-scheme" content="dark">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  /* Token: gli stessi di regia/design-tokens.json. Pagina sempre scura: è una sala regia. */
+  :root {
+    color-scheme: dark;
+    --bg: #0E0F12;
+    --screen: #15171B;
+    --raised: #1C1F25;
+    --frame: #2A2E36;
+    --ink: #F1EEE6;
+    --ink-2: #B4B0A6;
+    --ink-3: #8D8B84;
+    --run: #fab219;
+    --good: #0ca30c;
+    --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px; --s5: 24px; --s6: 32px; --s7: 48px; --s8: 64px; --s9: 96px;
+    --mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+    --display: 'Barlow Condensed', 'DIN Alternate', 'Bahnschrift', sans-serif;
+    --ease-out: cubic-bezier(.23, 1, .32, 1);
+  }
+  * { box-sizing: border-box; }
+  html { background: var(--bg); }
+  body { margin: 0; background: var(--bg); color: var(--ink-2); font: 400 15px/1.6 var(--mono); -webkit-font-smoothing: antialiased; }
+  a { color: inherit; }
+  :focus-visible { outline: 2px solid var(--run); outline-offset: 3px; border-radius: 4px; }
+
+  .wrap { width: min(1120px, 100% - 2 * var(--s4)); margin-inline: auto; }
+
+  .top { display: flex; align-items: center; justify-content: space-between; padding-block: var(--s5); }
+  .mark { font: 600 13px var(--mono); letter-spacing: .28em; color: var(--ink); text-decoration: none; display: inline-flex; align-items: center; gap: var(--s3); }
+  .mark::before { content: ''; width: 24px; height: 2px; border-radius: 1px; background: var(--run); }
+  .nav { display: flex; gap: var(--s5); font-size: 12px; letter-spacing: .16em; text-transform: uppercase; }
+  .nav a { text-decoration: none; color: var(--ink-3); transition: color .2s var(--ease-out); }
+  .nav a:hover { color: var(--ink); }
+
+  .hero { display: grid; grid-template-columns: minmax(0, 1fr) 452px; gap: var(--s8); align-items: start; padding-block: var(--s7) var(--s9); }
+  .eyebrow { margin: 0 0 var(--s4); font-size: 12px; letter-spacing: .24em; text-transform: uppercase; color: var(--ink-3); }
+  h1 { margin: 0; font: 500 clamp(80px, 12vw, 148px)/.86 var(--display); color: var(--ink); letter-spacing: -.01em; }
+  .lede { margin: var(--s5) 0 0; max-width: 34ch; font-size: 18px; line-height: 1.55; color: var(--ink); }
+  .lede span { color: var(--ink-2); }
+  .cta { display: flex; flex-wrap: wrap; gap: var(--s3); margin-top: var(--s6); }
+  .btn { display: inline-flex; align-items: center; gap: var(--s2); padding: var(--s3) var(--s5); border-radius: 999px; border: 1px solid var(--frame); background: var(--raised); color: var(--ink); text-decoration: none; font: 600 13px var(--mono); letter-spacing: .06em; transition: border-color .2s var(--ease-out), background-color .2s var(--ease-out), transform .16s var(--ease-out); }
+  .btn:hover { border-color: var(--ink-3); }
+  .btn:active { transform: scale(.97); }
+  .btn.primary { border-color: var(--run); color: var(--run); background: transparent; }
+  .btn.primary:hover { background: rgba(250, 178, 25, .08); }
+  .facts { list-style: none; margin: var(--s7) 0 0; padding: 0; display: grid; gap: var(--s3); }
+  .facts li { display: flex; gap: var(--s3); align-items: baseline; }
+  .facts i { flex: none; width: 9px; height: 9px; border-radius: 2px; transform: translateY(1px); }
+  .note { margin: var(--s6) 0 0; font-size: 12px; color: var(--ink-3); }
+
+  .pane { position: sticky; top: var(--s5); border: 1px solid var(--frame); border-radius: 16px; background: var(--screen); padding: var(--s3) var(--s3) var(--s2); }
+  .pane-bar { display: flex; align-items: center; justify-content: space-between; padding: var(--s1) var(--s2) var(--s3); font-size: 11px; letter-spacing: .2em; color: var(--ink-3); }
+  .live { display: inline-flex; align-items: center; gap: var(--s2); color: var(--run); }
+  .live::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: var(--run); box-shadow: 0 0 0 0 rgba(250, 178, 25, .6); animation: ping 1.6s var(--ease-out) infinite; }
+  @keyframes ping { from { box-shadow: 0 0 0 0 rgba(250, 178, 25, .55); } to { box-shadow: 0 0 0 9px rgba(250, 178, 25, 0); } }
+  .lang { display: inline-flex; border: 1px solid var(--frame); border-radius: 999px; padding: 2px; }
+  .lang button { appearance: none; border: 0; background: transparent; color: var(--ink-3); font: 600 11px var(--mono); letter-spacing: .12em; padding: var(--s1) var(--s3); border-radius: 999px; cursor: pointer; transition: color .2s var(--ease-out), background-color .2s var(--ease-out); }
+  .lang button:hover { color: var(--ink); }
+  .lang button[aria-pressed="true"] { background: var(--raised); color: var(--ink); }
+  .stack { display: grid; gap: var(--s2); }
+  .stack img { display: block; width: 100%; height: auto; }
+
+  section.more, section.install { padding-block: var(--s8); border-top: 1px solid var(--frame); }
+  h2 { margin: 0; font: 500 clamp(40px, 6vw, 64px)/1 var(--display); color: var(--ink); }
+  .section-lede { margin: var(--s4) 0 var(--s6); max-width: 60ch; }
+  .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s4); align-items: start; }
+  .grid img { display: block; width: 100%; height: auto; }
+
+  .steps { display: grid; gap: var(--s6); max-width: 760px; counter-reset: step; }
+  .step h3 { margin: 0 0 var(--s3); font: 600 12px var(--mono); letter-spacing: .2em; text-transform: uppercase; color: var(--ink); }
+  .step h3::before { counter-increment: step; content: counter(step, decimal-leading-zero) '  '; color: var(--run); }
+  .step p { margin: 0 0 var(--s3); }
+  .code { position: relative; display: flex; align-items: center; gap: var(--s3); border: 1px solid var(--frame); border-radius: 10px; background: var(--screen); padding: var(--s3) var(--s3) var(--s3) var(--s4); }
+  .code code { flex: 1; min-width: 0; overflow-x: auto; white-space: nowrap; color: var(--ink); font-size: 14px; }
+  .copy { appearance: none; flex: none; border: 1px solid var(--frame); background: var(--raised); color: var(--ink-2); font: 600 11px var(--mono); letter-spacing: .12em; padding: var(--s2) var(--s3); border-radius: 6px; cursor: pointer; transition: color .2s var(--ease-out), border-color .2s var(--ease-out); }
+  .copy:hover { color: var(--ink); border-color: var(--ink-3); }
+  .copy:active { transform: scale(.97); }
+  .copy[data-done] { color: var(--good); border-color: var(--good); }
+  kbd { font: 600 12px var(--mono); color: var(--ink); border: 1px solid var(--frame); border-bottom-width: 2px; border-radius: 4px; padding: 0 var(--s1); }
+
+  footer { padding-block: var(--s6) var(--s8); border-top: 1px solid var(--frame); font-size: 12px; color: var(--ink-3); display: flex; justify-content: space-between; gap: var(--s4); flex-wrap: wrap; }
+
+  @media (max-width: 960px) {
+    .hero { grid-template-columns: 1fr; gap: var(--s7); padding-top: var(--s5); }
+    .pane { position: static; max-width: 452px; }
+    .grid { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 560px) { .nav { gap: var(--s4); } .nav a.hide-sm { display: none; } }
+  @media (prefers-reduced-motion: reduce) {
+    .live::before { animation: none; }
+    .btn, .copy, .lang button, .nav a { transition: none; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <a class="mark" href="#">REGIA</a>
+    <nav class="nav" aria-label="Sections">
+      <a href="#demo" class="hide-sm">Demo</a>
+      <a href="#monitors" class="hide-sm">Monitors</a>
+      <a href="#install">Install</a>
+      <a href="https://github.com/purpleheads2026/Mod_claude">GitHub</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="hero" id="demo">
+      <div>
+        <p class="eyebrow">Claude Code plugin</p>
+        <h1>Regia</h1>
+        <p class="lede">A live control room for your Claude Code sessions. <span>Agents, skills, tool calls, context and usage limits on one animated radar, right inside the Code tab.</span></p>
+        <div class="cta">
+          <a class="btn primary" href="#install">Install</a>
+          <a class="btn" href="https://github.com/purpleheads2026/Mod_claude">View on GitHub</a>
+        </div>
+        <ul class="facts">
+          <li><i style="background:#fab219"></i><span>Subagents orbit the core as satellites, beaming while they work.</span></li>
+          <li><i style="background:#3987e5"></i><span>Every tool call is born on the needle and sweeps around in real time.</span></li>
+          <li><i style="background:#d95926"></i><span>Context fill and your 5-hour limit, always in view.</span></li>
+          <li><i style="background:#0ca30c"></i><span>English or Italian, motion that respects reduced-motion settings.</span></li>
+        </ul>
+        <p class="note">The panel on the right is the plugin's real drawing code, running on a simulated session.</p>
+      </div>
+
+      <div class="pane" aria-label="Live demo of the Regia panel">
+        <div class="pane-bar">
+          <span class="live">LIVE DEMO</span>
+          <div class="lang" role="group" aria-label="Panel language">
+            <button type="button" data-lang="en" aria-pressed="true">EN</button>
+            <button type="button" data-lang="it" aria-pressed="false">IT</button>
+          </div>
+        </div>
+        <div class="stack" id="pane"></div>
+      </div>
+    </section>
+
+    <section class="more" id="monitors">
+      <h2>Every monitor, live</h2>
+      <p class="section-lede">Below the radar the panel keeps going: context breakdown and usage limits, activity lanes that scroll with time, the skills in play, the tools you lean on most and every file touched.</p>
+      <div class="grid" id="grid"></div>
+    </section>
+
+    <section class="install" id="install">
+      <h2>Install</h2>
+      <p class="section-lede">Requires Claude Code 2.1.293 or later. The graphic panel lives in the desktop app's Code tab; the terminal gets a compact text version.</p>
+      <div class="steps">
+        <div class="step">
+          <h3>Install from a terminal session</h3>
+          <p>Type this at the Claude Code prompt, answer <kbd>y</kbd> to add the marketplace, then pick the <b>user</b> scope.</p>
+          <div class="code"><code>/plugin install regia --marketplace purpleheads2026/Mod_claude</code><button class="copy" type="button">COPY</button></div>
+        </div>
+        <div class="step">
+          <h3>Or use the CLI</h3>
+          <div class="code"><code>claude plugin install regia --marketplace purpleheads2026/Mod_claude --scope user</code><button class="copy" type="button">COPY</button></div>
+        </div>
+        <div class="step">
+          <h3>Open it</h3>
+          <p>New sessions load Regia on their own and open the panel at start. In a session that is already open, run <kbd>/reload-plugins</kbd>, then <kbd>/regia</kbd>.</p>
+        </div>
+        <div class="step">
+          <h3>Pick a language</h3>
+          <p>English by default. For Italian:</p>
+          <div class="code"><code>echo '{"language":"it"}' | claude plugin configure regia@mod-claude --values-stdin</code><button class="copy" type="button">COPY</button></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <span>Regia · a Claude Code plugin</span>
+    <a href="https://github.com/purpleheads2026/Mod_claude">Source on GitHub</a>
+  </footer>
+</div>
+
+<script type="module">
+// La demo usa i generatori veri del plugin (docs/demo/lib, da scripts/showcase.mjs) e lo
+// stesso simulatore dell'anteprima. Ogni monitor è un'immagine ridisegnata ogni secondo,
+// come nel pannello del desktop.
+import * as M from './demo/lib/model.mjs'
+import * as S from './demo/lib/svg.mjs'
+import * as R from './demo/lib/radar.mjs'
+import { STRINGS } from './demo/lib/i18n.mjs'
+import { buildScenario, simulate } from './demo/lib/scenario.mjs'
+
+const W = 420
+let L = STRINGS.en
+let snap = buildScenario(M, Date.now())
+
+const monitors = [
+  ['pane', now => R.radarSvg(snap, now, W, L)],
+  ['pane', now => S.agentsSvg(snap, now, W, true, L)],
+  ['grid', now => S.metersSvg(snap, now, W, L)],
+  ['grid', now => S.timelineSvg(snap, now, W, L)],
+  ['grid', now => S.skillsSvg(snap, now, W, L)],
+  ['grid', () => S.toolsSvg(snap, W, M.categorize, M.toolName, L)],
+  ['grid', now => S.filesSvg(snap, now, W, L)],
+]
+const slots = monitors.map(([where]) => {
+  const img = document.createElement('img')
+  img.decoding = 'sync'
+  img.alt = ''
+  document.getElementById(where).append(img)
+  return { img, last: '' }
+})
+
+const draw = () => {
+  const now = Date.now()
+  monitors.forEach(([, make], i) => {
+    const svg = make(now)
+    const slot = slots[i]
+    if (svg === slot.last) return
+    slot.last = svg
+    slot.img.alt = /aria-label="([^"]*)"/.exec(svg)?.[1] ?? ''
+    slot.img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg)
+  })
+}
+
+simulate(M, fn => { snap = fn(snap); draw() })
+draw()
+setInterval(draw, 1000)
+
+for (const button of document.querySelectorAll('.lang button')) {
+  button.addEventListener('click', () => {
+    L = STRINGS[button.dataset.lang] ?? STRINGS.en
+    for (const other of document.querySelectorAll('.lang button')) other.setAttribute('aria-pressed', String(other === button))
+    draw()
+  })
+}
+
+for (const button of document.querySelectorAll('.copy')) {
+  button.addEventListener('click', async () => {
+    const code = button.parentElement.querySelector('code').textContent
+    try {
+      await navigator.clipboard.writeText(code)
+      button.textContent = 'COPIED'
+      button.dataset.done = ''
+    } catch {
+      button.textContent = 'SELECT ↑'
+    }
+    setTimeout(() => { button.textContent = 'COPY'; delete button.dataset.done }, 1600)
+  })
+}
+</script>
+</body>
+</html>

@@ -17,6 +17,8 @@ import { atom, read, update } from 'claude-code'
 import type { EngineInterface, Register } from 'claude-code'
 
 import type { RegiaSnapshot, RegiaStatus } from '../types'
+import { langOf, STRINGS } from './i18n'
+import type { Strings } from './i18n'
 import {
   agentDenied,
   agentFinished,
@@ -54,7 +56,9 @@ import {
 } from './svg'
 
 const PANE = 'regia'
-const TITLE = 'Regia'
+
+/** Testi della lingua scelta (opzione `language` del manifest), fissati a ogni load. */
+let L: Strings = STRINGS.en
 
 const snap = atom({ plugin: 'regia', key: 'snap' } as const, emptySnapshot(0))
 const clock = atom({ plugin: 'regia', key: 'now' } as const, 0)
@@ -83,7 +87,7 @@ let lastStatus: string | undefined
 /** Voce nella status line solo mentre lavorano dei subagenti. */
 const refreshStatus = ($: $, s: RegiaSnapshot): void => {
   const live = runningAgents(s).length
-  const text = live > 0 ? `Regia · ${live} ${live === 1 ? 'agente' : 'agenti'} in corso` : undefined
+  const text = live > 0 ? L.pane.status(live) : undefined
   if (text !== lastStatus) {
     lastStatus = text
     $.ui.status(text)
@@ -115,7 +119,8 @@ const tick = async ($: $): Promise<void> => {
   }
 }
 
-export const register: Register = on => {
+export const register: Register = (on, options) => {
+  L = STRINGS[langOf(options.language)]
   // ── Sessione ───────────────────────────────────────────────────────────────
 
   on('session.start', async ($, e, next) => {
@@ -126,12 +131,12 @@ export const register: Register = on => {
     )
     await $.command.register({
       name: 'regia',
-      description: 'Apre la Regia: agenti, skill, strumenti e contesto in tempo reale',
+      description: L.pane.command,
     })
     $.clock.every(1000, () => {
       void tick($)
     })
-    void $.ui.open({ id: PANE, title: TITLE })
+    void $.ui.open({ id: PANE, title: L.pane.title })
     return next(e)
   })
 
@@ -145,8 +150,8 @@ export const register: Register = on => {
   })
 
   on('command.run', { command: 'regia' }, async $ => {
-    await $.ui.open({ id: PANE, title: TITLE })
-    return { text: 'Regia aperta.' }
+    await $.ui.open({ id: PANE, title: L.pane.title })
+    return { text: L.pane.opened }
   })
 
   // ── Turni ──────────────────────────────────────────────────────────────────
@@ -283,46 +288,46 @@ export const register: Register = on => {
       return (
         <Box flexDirection="column">
           <Box flexDirection="row" gap={2}>
-            <Text color={live ? C.run : undefined} bold>{live ? '● IN ONDA' : '○ IN ATTESA'}</Text>
-            <Text dimColor>turno {s.turn.count} · {clockText}</Text>
+            <Text color={live ? C.run : undefined} bold>{live ? L.terminal.live : L.terminal.idle}</Text>
+            <Text dimColor>{L.terminal.turn(s.turn.count, clockText)}</Text>
             {s.meters.model === undefined ? null : <Text dimColor>{s.meters.model}</Text>}
           </Box>
           <Box flexDirection="row" gap={1}>
-            <Text dimColor>contesto</Text>
+            <Text dimColor>{L.terminal.context}</Text>
             <Text>{'█'.repeat(filled)}</Text>
             <Text dimColor>{'░'.repeat(barW - filled)}</Text>
             <Text>{pct === undefined ? '—' : `${Math.round(pct)}%`}</Text>
-            {fiveHourLimit(s) === undefined ? null : <Text dimColor>· 5 ore {Math.round(fiveHourLimit(s)?.percentUsed ?? 0)}%</Text>}
-            <Text dimColor>· out {fmtTokens(s.meters.outTokens)}</Text>
+            {fiveHourLimit(s) === undefined ? null : <Text dimColor>{L.terminal.five(Math.round(fiveHourLimit(s)?.percentUsed ?? 0))}</Text>}
+            <Text dimColor>{L.terminal.out(fmtTokens(s.meters.outTokens, L))}</Text>
           </Box>
           <Text dimColor> </Text>
-          <Text dimColor>AGENTI</Text>
-          {agents.length === 0 ? <Text dimColor>nessun subagente</Text> : null}
+          <Text dimColor>{L.terminal.agents}</Text>
+          {agents.length === 0 ? <Text dimColor>{L.terminal.noAgents}</Text> : null}
           {agents.map(a => (
             <Box key={a.key} flexDirection="row" gap={1}>
               <Text color={STATUS_GLYPH[a.status].color}>{STATUS_GLYPH[a.status].glyph}</Text>
               <Text bold>{a.type}</Text>
               <Text dimColor wrap="truncate-end">{a.description}</Text>
-              <Text dimColor>{fmtClock((a.endedAt ?? now) - a.startedAt)} · {a.tools} strum.</Text>
+              <Text dimColor>{fmtClock((a.endedAt ?? now) - a.startedAt)} · {L.terminal.calls(a.tools)}</Text>
             </Box>
           ))}
           <Text dimColor> </Text>
-          <Text dimColor>SKILL</Text>
+          <Text dimColor>{L.terminal.skills}</Text>
           <Text wrap="wrap">
             {s.skills.length === 0
-              ? 'nessuna'
+              ? L.terminal.none
               : s.skills.map(k => (k.count > 1 ? `${k.name} ×${k.count}` : k.name)).join('  ·  ')}
           </Text>
           {isCompact ? null : <Text dimColor> </Text>}
-          {isCompact ? null : <Text dimColor>STRUMENTI</Text>}
+          {isCompact ? null : <Text dimColor>{L.terminal.tools}</Text>}
           {isCompact ? null : (
             <Text wrap="wrap">
-              {tools.length === 0 ? 'nessuno' : tools.map(([t, n]) => `${toolName(t)} ${n}`).join('  ·  ')}
+              {tools.length === 0 ? L.terminal.none : tools.map(([t, n]) => `${toolName(t)} ${n}`).join('  ·  ')}
             </Text>
           )}
           <Box flexDirection="row" gap={1} marginTop={1}>
-            <Button key="compact" label={isCompact ? 'Espandi' : 'Compatta'} onPress={toggle} />
-            <Button key="reset" label="Azzera" onPress={reset} />
+            <Button key="compact" label={isCompact ? L.pane.expand : L.pane.compact} onPress={toggle} />
+            <Button key="reset" label={L.pane.resetShort} onPress={reset} />
           </Box>
         </Box>
       )
@@ -333,20 +338,20 @@ export const register: Register = on => {
 
     return (
       <Box flexDirection="column" gap={1}>
-        <Svg key="radar" source={radarSvg(s, now, w)} alt="Radar della regia" />
+        <Svg key="radar" source={radarSvg(s, now, w, L)} alt={L.pane.alts.radar} />
         {isCompact ? null : (
-          <Svg key="meters" source={metersSvg(s, now, w)} alt="Contesto, costo e limiti" />
+          <Svg key="meters" source={metersSvg(s, now, w, L)} alt={L.pane.alts.meters} />
         )}
-        <Svg key="agents" source={agentsSvg(s, now, w, isCompact)} alt="Agenti al lavoro" />
-        <Svg key="skills" source={skillsSvg(s, now, w)} alt="Skill caricate" />
-        {isCompact ? null : <Svg key="timeline" source={timelineSvg(s, now, w)} alt="Attività nel tempo" />}
+        <Svg key="agents" source={agentsSvg(s, now, w, isCompact, L)} alt={L.pane.alts.agents} />
+        <Svg key="skills" source={skillsSvg(s, now, w, L)} alt={L.pane.alts.skills} />
+        {isCompact ? null : <Svg key="timeline" source={timelineSvg(s, now, w, L)} alt={L.pane.alts.timeline} />}
         {isCompact ? null : (
-          <Svg key="tools" source={toolsSvg(s, w, categorize, toolName)} alt="Strumenti più usati" />
+          <Svg key="tools" source={toolsSvg(s, w, categorize, toolName, L)} alt={L.pane.alts.tools} />
         )}
-        {isCompact ? null : <Svg key="files" source={filesSvg(s, now, w)} alt="File toccati" />}
+        {isCompact ? null : <Svg key="files" source={filesSvg(s, now, w, L)} alt={L.pane.alts.files} />}
         <Box flexDirection="row" gap={1}>
-          <Button key="compact" label={isCompact ? 'Espandi' : 'Compatta'} onPress={toggle} />
-          <Button key="reset" label="Azzera statistiche" onPress={reset} />
+          <Button key="compact" label={isCompact ? L.pane.expand : L.pane.compact} onPress={toggle} />
+          <Button key="reset" label={L.pane.reset} onPress={reset} />
         </Box>
       </Box>
     )

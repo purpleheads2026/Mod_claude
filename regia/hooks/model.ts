@@ -276,17 +276,13 @@ export const agentsReconciled = (
 
 // ── Turni, skill, misure ─────────────────────────────────────────────────────
 
-/** Notifiche che arrivano come turno ma non le ha scritte la persona. */
-const NOTICES: Record<string, string> = {
-  'agent-message': 'messaggio da un subagente',
-  'task-notification': 'notifica di un task in background',
-  'system-reminder': 'promemoria di sistema',
-  'local-command-stdout': 'uscita di un comando',
-}
+/** Notifiche che arrivano come turno ma non le ha scritte la persona (chiavi di i18n.notices). */
+const NOTICES = new Set(['agent-message', 'task-notification', 'system-reminder', 'local-command-stdout'])
 
 /**
  * Il prompt come riga leggibile: il testo della persona così com'è; una notifica
- * interna (`<agent-message …>`, `<task-notification>`) come etichetta preceduta da ↳.
+ * interna (`<agent-message …>`, `<task-notification>`) come chiave preceduta da ↳
+ * (`↳agent-message`), tradotta al disegno; un comando come `↳/nome`.
  */
 export const promptLabel = (text: string): string => {
   const trimmed = text.trim()
@@ -294,12 +290,11 @@ export const promptLabel = (text: string): string => {
   if (tag === undefined) return oneLine(trimmed, 120)
   if (tag === 'command-name') {
     const name = /<command-name>([^<]*)</.exec(trimmed)?.[1]?.trim()
-    return `↳ ${name === undefined || name === '' ? 'comando' : name}`
+    return `↳${name === undefined || name === '' ? 'notice' : name}`
   }
-  const known = NOTICES[tag]
-  if (known !== undefined) return `↳ ${known}`
+  if (NOTICES.has(tag)) return `↳${tag}`
   const plain = oneLine(trimmed.replace(/<[^>]+>/g, ' '), 120)
-  return plain === '' ? '↳ notifica' : plain
+  return plain === '' ? '↳notice' : plain
 }
 
 export const turnStarted = (s: RegiaSnapshot, at: number, prompt: string): RegiaSnapshot =>

@@ -5,11 +5,11 @@ import { expect, mock, test } from 'claude-code/testing'
 
 /** Il sorgente SVG di un monitor del pannello disegnato su desktop, trovato per `alt`. */
 const ALT = {
-  radar: 'Radar della regia',
-  agents: 'Agenti al lavoro',
-  skills: 'Skill caricate',
-  tools: 'Strumenti più usati',
-  files: 'File toccati',
+  radar: 'Regia radar',
+  agents: 'Agents at work',
+  skills: 'Loaded skills',
+  tools: 'Most used tools',
+  files: 'Files touched',
 } as const
 
 type Engine = Parameters<Extract<Parameters<typeof test>[1], (...a: never[]) => unknown>>[0]
@@ -44,11 +44,11 @@ test('ogni strumento finisce nello snapshot e nel pannello', async ($, on) => {
   await $.tool.call({ tool: 'Bash', command: 'npm test' })
 
   const tools = await monitor($, 'tools')
-  expect(tools).toContain('3 CHIAMATE')
+  expect(tools).toContain('3 CALLS')
   expect(tools).toContain('>Bash<')
   const files = await monitor($, 'files')
   expect(files).toContain('app.ts')
-  expect(files).toContain('1 mod · 1 lett')
+  expect(files).toContain('1 edit · 1 read')
 
   for (const surface of ['terminal', 'desktop'] as const) {
     const ui = await $.ui.mount({ plugin: 'regia', surface, ...pane(90) })
@@ -75,7 +75,7 @@ test('un subagente nasce, lavora e finisce', async ($, on) => {
     fork: false,
   })
   let agents = await monitor($, 'agents')
-  expect(agents).toContain('1 IN CORSO')
+  expect(agents).toContain('1 RUNNING')
   expect(agents).toContain('Explore')
   // Stesso monogramma nel radar (satellite) e nella scheda.
   expect(agents).toContain('>EX<')
@@ -83,7 +83,7 @@ test('un subagente nasce, lavora e finisce', async ($, on) => {
 
   await $.tool.call({ tool: 'Grep', pattern: 'Button', agentId: 'a1' } as never)
   agents = await monitor($, 'agents')
-  expect(agents).toContain('1 strumento ')
+  expect(agents).toContain('1 tool call ')
 
   await $.turn.complete({
     answer: 'Fatto',
@@ -94,8 +94,8 @@ test('un subagente nasce, lavora e finisce', async ($, on) => {
     reason: 'answer',
   })
   agents = await monitor($, 'agents')
-  expect(agents).toContain('FATTO')
-  expect(agents).toContain('0 IN CORSO')
+  expect(agents).toContain('DONE')
+  expect(agents).toContain('0 RUNNING')
 })
 
 test('le skill si contano a ogni caricamento', async ($, on) => {
@@ -107,6 +107,20 @@ test('le skill si contano a ogni caricamento', async ($, on) => {
   await $.skill.prompt({ skill: 'brand', text: '…' })
 
   const skills = await monitor($, 'skills')
-  expect(skills).toContain('2 CARICATE · 3 USI')
+  expect(skills).toContain('2 LOADED · 3 USES')
   expect(skills).toContain('×2')
+})
+
+test('con language: it il pannello parla italiano', { options: { language: 'it' } }, async ($, on) => {
+  mock.clock(on)
+  on('tool.call', () => ({ result: 'ok' as never }))
+  await $.tool.call({ tool: 'Bash', command: 'npm test' })
+
+  const ui = await $.ui.mount({ plugin: 'regia', surface: 'desktop', ...pane(90) })
+  const all = await ui.findAll({ type: 'Svg' })
+  const radar = String(all.find(one => one.props.alt === 'Radar della regia')?.props.source ?? '')
+  expect(radar).toContain('IN ATTESA')
+  expect(radar).toContain('1 strumento')
+  expect((await ui.find({ key: 'reset' }))?.props.label).toBe('Azzera statistiche')
+  await ui.unmount()
 })

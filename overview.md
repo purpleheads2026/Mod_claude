@@ -16,17 +16,24 @@ strumenti usati, contesto/costo/rate limit — dentro un pannello del Code tab.
 ```
 Mod_claude/
 ├── overview.md                      questa mappa
-├── README.md                        cos'è Regia, requisiti, installazione, uso, aggiornamento
+├── README.md                        vetrina in inglese: hero animato, monitor, anatomia, install
+├── design-tokens.json               token della pagina Pages e delle immagini (base: regia/design-tokens.json)
+├── docs/                            GitHub Pages (pubblicata da main /docs)
+│   ├── index.html                   landing in inglese con demo live EN/IT (scritta a mano)
+│   ├── demo/lib/*.mjs               generata: hooks convertiti + scenario, usati dalla demo
+│   └── media/{hero,wall,anatomy}.svg  generate: immagini animate del README
 ├── .claude-plugin/marketplace.json  rende la repo un marketplace (plugin: regia → ./regia)
 ├── .claude/launch.json              server statico per l'anteprima (porta 4317)
 ├── .gitignore                       esclude tipi generati dall'engine e output anteprima
 ├── scripts/sync.sh                  dev-mods → regia/
+├── scripts/showcase.mjs             rigenera docs/demo/lib e docs/media dai sorgenti del plugin
 └── regia/
     ├── .claude-plugin/plugin.json   manifest (nome, versione, contratto dei tipi)
     ├── design-tokens.json           token congelati: colori hex, tipografia, motion, raggi
     ├── hooks/hooks.json             punta al modulo degli hook
     ├── hooks/register.tsx           cablaggio eventi → stato → render del pannello
     ├── hooks/model.ts               riduttori puri dello stato (nessun $, testabili)
+    ├── hooks/i18n.ts                tutti i testi del pannello, inglese (default) e italiano
     ├── hooks/motion.ts              keyframes, curve, durate, fase agganciata all'orologio
     ├── hooks/radar.ts               il monitor principale: nucleo, satelliti, corona dei 60 s
     ├── hooks/svg.ts                 token, utilità e gli altri monitor
@@ -75,6 +82,15 @@ Mod_claude/
    dipendenza) e scrive `preview/index.html` (statica) e `preview/live.html` (sessione
    simulata, ridisegno ogni secondo come sul desktop: è lì che si verifica il motion).
 
+## Lingua
+
+Opzione `language` del manifest (`userConfig`, valori `en`/`it`, default `en`). Il valore
+sta in `pluginConfigs` delle impostazioni (`regia@mod-claude` per il plugin installato,
+`regia` / `regia@inline` per una copia in sviluppo). Sul profilo di Samuel è impostato `it`.
+`register.tsx` sceglie `STRINGS[lang]` a ogni load; nessun testo è scritto nei monitor.
+Le notifiche interne nel prompt sono salvate come chiave (`↳agent-message`) e tradotte al
+disegno.
+
 ## Comandi
 
 - `/regia` — apre (o riporta in primo piano) il pannello. Si apre anche da solo a
@@ -111,6 +127,10 @@ Installazione (già fatta il 2026-10-10), dalla root della repo, con il binario 
 "$CC" plugin marketplace add "$PWD"
 "$CC" plugin install regia@mod-claude --scope user
 ```
+
+Vetrina GitHub: `node scripts/showcase.mjs` rigenera immagini del README e moduli della demo
+(Pages pubblica `main` /docs: https://purpleheads2026.github.io/Mod_claude/). Server locale:
+configurazione `regia-docs` in `.claude/launch.json` (porta 4318).
 
 Aggiornare: modificare `regia/`, alzare `version` in `regia/.claude-plugin/plugin.json`,
 poi `/reload-plugins` in ogni sessione aperta. Disinstallare: `"$CC" plugin uninstall regia@mod-claude`.

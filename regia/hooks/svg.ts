@@ -9,6 +9,7 @@
 // verde = fatto, rosso = errore. Categorie strumenti: palette categoriale scura
 // validata (dataviz, adjacent CVD ΔE ≥ 8.4 su #15171B), ordine fisso, mai ciclata.
 // Il testo veste sempre i token d'inchiostro, mai il colore della serie.
+// Nessuna scritta qui: ogni testo arriva dal dizionario `Strings` (i18n.ts).
 //
 // Tutti i monitor sono mostrati come immagini: il desktop mette gli Svg interattivi in
 // un iframe alto 150 px e li rimpicciolisce (verificato su uno screenshot reale), quindi
@@ -24,6 +25,7 @@ import type {
   RegiaSnapshot,
   RegiaStatus,
 } from '../types'
+import type { LimitKind, Strings } from './i18n'
 import { DUR, motionCss, phase, since } from './motion'
 
 // ── Token ────────────────────────────────────────────────────────────────────
@@ -44,29 +46,29 @@ export const C = {
   system: '#8F8A7F',
 } as const
 
-export const CATEGORY: Record<RegiaCategory, { color: string; label: string }> = {
-  read: { color: '#3987e5', label: 'Lettura' },
-  write: { color: '#d95926', label: 'Scrittura' },
-  shell: { color: '#199e70', label: 'Shell' },
-  web: { color: '#c98500', label: 'Web' },
-  agent: { color: '#d55181', label: 'Agenti' },
-  skill: { color: '#008300', label: 'Skill' },
-  mcp: { color: '#9085e9', label: 'MCP' },
-  other: { color: '#5E636D', label: 'Altro' },
+export const CATEGORY: Record<RegiaCategory, { color: string }> = {
+  read: { color: '#3987e5' },
+  write: { color: '#d95926' },
+  shell: { color: '#199e70' },
+  web: { color: '#c98500' },
+  agent: { color: '#d55181' },
+  skill: { color: '#008300' },
+  mcp: { color: '#9085e9' },
+  other: { color: '#5E636D' },
 }
 
 export const CATEGORY_ORDER: RegiaCategory[] = [
   'read', 'write', 'shell', 'web', 'agent', 'skill', 'mcp', 'other',
 ]
 
-export const STATUS: Record<RegiaStatus, { color: string; label: string }> = {
-  pending: { color: C.wait, label: 'IN PARTENZA' },
-  running: { color: C.run, label: 'IN CORSO' },
-  waiting: { color: C.wait, label: 'IN ATTESA' },
-  idle: { color: C.wait, label: 'FERMO' },
-  completed: { color: C.good, label: 'FATTO' },
-  failed: { color: C.bad, label: 'ERRORE' },
-  killed: { color: C.bad, label: 'FERMATO' },
+export const STATUS: Record<RegiaStatus, { color: string }> = {
+  pending: { color: C.wait },
+  running: { color: C.run },
+  waiting: { color: C.wait },
+  idle: { color: C.wait },
+  completed: { color: C.good },
+  failed: { color: C.bad },
+  killed: { color: C.bad },
 }
 
 const MONO = `ui-monospace,'SF Mono','JetBrains Mono',Menlo,monospace`
@@ -103,14 +105,12 @@ export const fitParts = (parts: readonly string[], px: number, size: number): st
   return fit(parts.slice(0, n).join(' · '), px, size)
 }
 
-export const nTools = (n: number): string => `${n} ${n === 1 ? 'strumento' : 'strumenti'}`
+const dec = (n: number, L: Strings, digits = 1): string => n.toFixed(digits).replace('.', L.decimal)
 
-const it = (n: number, digits = 1): string => n.toFixed(digits).replace('.', ',')
-
-export const fmtTokens = (n: number): string => {
+export const fmtTokens = (n: number, L: Strings): string => {
   if (n < 1000) return String(Math.round(n))
-  if (n < 1_000_000) return `${it(n / 1000, n < 10_000 ? 1 : 0)}k`
-  return `${it(n / 1_000_000)}M`
+  if (n < 1_000_000) return `${dec(n / 1000, L, n < 10_000 ? 1 : 0)}k`
+  return `${dec(n / 1_000_000, L)}M`
 }
 
 export const fmtClock = (ms: number): string => {
@@ -122,15 +122,16 @@ export const fmtClock = (ms: number): string => {
   return h > 0 ? `${h}:${String(m).padStart(2, '0')}:${ss}` : `${m}:${ss}`
 }
 
-export const fmtSpan = (ms: number): string => {
-  if (ms < 1000) return `${Math.max(0, Math.round(ms))} ms`
-  if (ms < 10_000) return `${it(ms / 1000)} s`
-  if (ms < 60_000) return `${Math.round(ms / 1000)} s`
+export const fmtSpan = (ms: number, L: Strings): string => {
+  const u = L.units
+  if (ms < 1000) return `${Math.max(0, Math.round(ms))} ${u.ms}`
+  if (ms < 10_000) return `${dec(ms / 1000, L)} ${u.s}`
+  if (ms < 60_000) return `${Math.round(ms / 1000)} ${u.s}`
   const m = Math.floor(ms / 60_000)
-  if (m < 60) return `${m} min`
+  if (m < 60) return `${m} ${u.min}`
   const h = Math.floor(m / 60)
-  if (h < 24) return `${h} h ${m % 60} min`
-  return `${Math.floor(h / 24)} g ${h % 24} h`
+  if (h < 24) return `${h} ${u.h} ${m % 60} ${u.min}`
+  return `${Math.floor(h / 24)} ${u.d} ${h % 24} ${u.h}`
 }
 
 
@@ -226,27 +227,33 @@ export const badge = (
 
 // ── Strumentazione: contesto, costo, token, rate limit ───────────────────────
 
-const humanLimit = (kind: string): string => {
+const limitKind = (kind: string): LimitKind | undefined => {
   const k = kind.toLowerCase()
-  if (k.includes('five') || k.includes('5h') || k.includes('session')) return '5 ore'
-  if (k.includes('opus')) return '7 giorni · Opus'
-  if (k.includes('sonnet')) return '7 giorni · Sonnet'
-  if (k.includes('seven') || k.includes('week') || k.includes('7d')) return '7 giorni'
-  return kind.replace(/[_-]+/g, ' ')
+  if (k.includes('five') || k.includes('5h') || k.includes('session')) return 'five'
+  if (k.includes('opus')) return 'sevenOpus'
+  if (k.includes('sonnet')) return 'sevenSonnet'
+  if (k.includes('seven') || k.includes('week') || k.includes('7d')) return 'seven'
+  return undefined
 }
 
-const resetsIn = (iso: string | undefined, now: number): string => {
+const limitLabel = (kind: string, L: Strings): string => {
+  const known = limitKind(kind)
+  return known === undefined ? kind.replace(/[_-]+/g, ' ') : L.limit[known]
+}
+
+/** Quanto manca all'azzeramento di una finestra, come durata già formattata ('' se ignoto). */
+const resetSpan = (iso: string | undefined, now: number, L: Strings): string => {
   if (iso === undefined) return ''
   const at = Date.parse(iso)
   if (Number.isNaN(at) || at <= now) return ''
-  return `si azzera tra ${fmtSpan(at - now)}`
+  return fmtSpan(at - now, L)
 }
 
 export const limitColor = (pct: number): string => (pct >= 90 ? C.bad : pct >= 75 ? C.run : C.ink2)
 
 /** La finestra di utilizzo delle 5 ore (abbonamento), se la sessione la riporta. */
 export const fiveHourLimit = (s: RegiaSnapshot): RegiaRateLimit | undefined =>
-  s.meters.rateLimits.find(r => humanLimit(r.kind) === '5 ore')
+  s.meters.rateLimits.find(r => limitKind(r.kind) === 'five')
 
 export const contextPercent = (s: RegiaSnapshot): number | undefined => {
   const m = s.meters
@@ -255,12 +262,7 @@ export const contextPercent = (s: RegiaSnapshot): number | undefined => {
     : undefined)
 }
 
-export const metersSvg = (
-  s: RegiaSnapshot,
-  now: number,
-  w: number,
-  isCompact = false,
-): string => {
+export const metersSvg = (s: RegiaSnapshot, now: number, w: number, L: Strings): string => {
   const m = s.meters
   const inner = w - PAD * 2
   const gap = 8
@@ -276,36 +278,36 @@ export const metersSvg = (
 
   const tiles: { cap: string; value: string; sub: string; color?: string }[] = [
     {
-      cap: 'CONTESTO',
+      cap: L.meters.context,
       value: pct === undefined ? '—' : `${Math.round(pct)}%`,
       sub: m.contextTokens !== undefined && m.contextWindow !== undefined
-        ? `${fmtTokens(m.contextTokens)} / ${fmtTokens(m.contextWindow)}`
-        : 'da misurare',
+        ? `${fmtTokens(m.contextTokens, L)} / ${fmtTokens(m.contextWindow, L)}`
+        : L.meters.notMeasured,
       ...(pct !== undefined && pct >= 75 ? { color: limitColor(pct) } : {}),
     },
     // Il limite delle 5 ore al posto del costo stimato a prezzi API, che con un
     // abbonamento non viene addebitato.
     (() => {
       const lim = fiveHourLimit(s)
-      if (lim === undefined) return { cap: 'LIMITE 5 ORE', value: '—', sub: 'nessun limite' }
+      if (lim === undefined) return { cap: L.meters.fiveHour, value: '—', sub: L.meters.noLimit }
       const p = Math.round(lim.percentUsed)
-      const reset = resetsIn(lim.resetsAt, now).replace('si azzera tra', 'azzera tra')
+      const span = resetSpan(lim.resetsAt, now, L)
       return {
-        cap: 'LIMITE 5 ORE',
+        cap: L.meters.fiveHour,
         value: `${p}%`,
-        sub: reset === '' ? 'finestra in corso' : reset,
+        sub: span === '' ? L.meters.windowOpen : L.resetsInShort(span),
         ...(p >= 75 ? { color: limitColor(p) } : {}),
       }
     })(),
     {
-      cap: 'TOKEN USCITA',
-      value: fmtTokens(m.outTokens),
-      sub: `cache ${fmtTokens(m.cacheReadTokens)}`,
+      cap: L.meters.outTokens,
+      value: fmtTokens(m.outTokens, L),
+      sub: L.meters.cache(fmtTokens(m.cacheReadTokens, L)),
     },
   ]
 
   let y = BODY_Y - 4
-  let body = head(w, 'STRUMENTAZIONE')
+  let body = head(w, L.meters.title)
 
   tiles.forEach((tile, i) => {
     const x = PAD + i * (tileW + gap)
@@ -318,7 +320,7 @@ export const metersSvg = (
   })
   y += tileH + 18
 
-  if (!isCompact) {
+  {
     // Composizione del contesto: conversazione in inchiostro, overhead di sistema in
     // grigio caldo, spazio libero come binario, riserva di compattazione tratteggiata.
     const slices = m.slices
@@ -330,7 +332,7 @@ export const metersSvg = (
       body +=
         `<defs><pattern id="hatch" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">` +
         `<rect width="5" height="5" fill="${C.track}"/><line x1="0" y1="0" x2="0" y2="5" stroke="${C.ink3}" stroke-width="1.4"/></pattern></defs>` +
-        `<text class="cap" x="${PAD}" y="${y}">COMPOSIZIONE DEL CONTESTO</text>`
+        `<text class="cap" x="${PAD}" y="${y}">${L.meters.breakdown}</text>`
       y += 8
       let x = PAD
       let used = ''
@@ -341,7 +343,7 @@ export const metersSvg = (
         const fill = sl.kind === 'free' ? C.track : sl.kind === 'buffer' ? 'url(#hatch)' : isTalk ? C.ink : C.system
         const seg =
           `<g class="hov"><rect class="lift" x="${x}" y="${y}" width="${sw}" height="12" rx="2" fill="${fill}" stroke="transparent"/>` +
-          `<title>${esc(sl.name)} — ${fmtTokens(sl.tokens)} token</title></g>`
+          `<title>${esc(`${sl.name} — ${L.meters.tokens(fmtTokens(sl.tokens, L))}`)}</title></g>`
         if (sl.kind === 'used') used += seg
         else rest += seg
         x += sw + 2
@@ -357,21 +359,22 @@ export const metersSvg = (
         body +=
           swatch(cx, cy - 8, isTalk ? C.ink : C.system) +
           `<text x="${cx + 14}" y="${cy}">${esc(fit(sl.name, colW - 70))}</text>` +
-          `<text class="ink" x="${cx + colW - 12}" y="${cy}" text-anchor="end">${fmtTokens(sl.tokens)}</text>`
+          `<text class="ink" x="${cx + colW - 12}" y="${cy}" text-anchor="end">${fmtTokens(sl.tokens, L)}</text>`
       })
       y += Math.ceil(named.length / 2) * 16 + 10
     }
 
     // Rate limit: binari sottili; il colore di stato scatta solo oltre soglia.
     if (m.rateLimits.length > 0) {
-      body += `<text class="cap" x="${PAD}" y="${y}">LIMITI DI UTILIZZO</text>`
+      body += `<text class="cap" x="${PAD}" y="${y}">${L.meters.limits}</text>`
       y += 16
       for (const r of m.rateLimits) {
         const p = Math.max(0, Math.min(100, r.percentUsed))
-        const reset = resetsIn(r.resetsAt, now)
+        const span = resetSpan(r.resetsAt, now, L)
+        const reset = span === '' ? '' : L.resetsIn(span)
         const prev = m.prev?.limits[r.kind]
         body +=
-          `<text x="${PAD}" y="${y}">${esc(humanLimit(r.kind))}</text>` +
+          `<text x="${PAD}" y="${y}">${esc(limitLabel(r.kind, L))}</text>` +
           `<text class="dim small" x="${PAD + 120}" y="${y}">${esc(reset)}</text>` +
           `<text class="num" x="${w - PAD}" y="${y}" text-anchor="end" style="font-size:14px">${Math.round(p)}%</text>` +
           `<rect x="${PAD}" y="${y + 6}" width="${inner}" height="4" rx="2" fill="${C.track}"/>` +
@@ -383,7 +386,10 @@ export const metersSvg = (
 
   const h = y + 2
   const lim = fiveHourLimit(s)
-  const label = `Contesto ${pct === undefined ? 'non misurato' : `${Math.round(pct)}%`}, limite 5 ore ${lim === undefined ? 'non disponibile' : `${Math.round(lim.percentUsed)}%`}`
+  const label = L.meters.alt(
+    pct === undefined ? L.meters.unknown : `${Math.round(pct)}%`,
+    lim === undefined ? L.meters.unknown : `${Math.round(lim.percentUsed)}%`,
+  )
   return doc(w, h, body, label)
 }
 
@@ -401,7 +407,8 @@ export const agentsSvg = (
   s: RegiaSnapshot,
   now: number,
   w: number,
-  isCompact = false,
+  isCompact: boolean,
+  L: Strings,
 ): string => {
   const ordered = agentOrder(s.agents)
   const monos = monograms(s.agents)
@@ -417,8 +424,8 @@ export const agentsSvg = (
 
   let body = head(
     w,
-    'AGENTI',
-    ordered.length === 0 ? '' : `${liveCount} IN CORSO · ${ordered.length} TOTALI`,
+    L.agents.title,
+    ordered.length === 0 ? '' : L.agents.counts(liveCount, ordered.length),
     liveCount > 0 ? C.run : C.ink3,
   )
 
@@ -427,11 +434,11 @@ export const agentsSvg = (
     `<rect x="${PAD}" y="${rootY - 12}" width="96" height="24" rx="12" fill="${C.raised}" stroke="${isLive ? C.run : C.frame}" stroke-opacity="${isLive ? 0.6 : 1}"/>` +
     lamp(PAD + 13, rootY, isLive ? C.run : C.ink3, isLive, now, 3.5) +
     `<text class="ink" x="${PAD + 24}" y="${rootY + 4}" style="font-weight:600;letter-spacing:.08em">CLAUDE</text>` +
-    `<text class="dim small" x="${PAD + 108}" y="${rootY + 4}">sessione principale</text>`
+    `<text class="dim small" x="${PAD + 108}" y="${rootY + 4}">${esc(L.agents.main)}</text>`
 
   if (shown.length === 0) {
-    body += emptyLine(w, rootY + 40, 'Ancora nessun subagente al lavoro.')
-    return doc(w, rootY + 58, body, 'Nessun subagente')
+    body += emptyLine(w, rootY + 40, L.agents.empty)
+    return doc(w, rootY + 58, body, L.agents.altEmpty)
   }
 
   const firstY = rootY + 26
@@ -454,7 +461,7 @@ export const agentsSvg = (
     const running = isRunning(a)
     const mid = y0 + 19
     const time = fmtClock(elapsed(a.startedAt, a.endedAt, now))
-    const statusText = `${st.label} ${time}`
+    const statusText = `${L.status[a.status]} ${time}`
     const statusW = textWidth(statusText, 9.5, 0.16)
     const mono = monos.get(a.key) ?? '?'
 
@@ -471,10 +478,10 @@ export const agentsSvg = (
       .join('')
     const ticksEnd = x0 + 14 + ticks.length * 7 + (ticks.length > 0 ? 6 : 0)
     const meta = [
-      nTools(a.tools),
+      L.tools(a.tools),
       a.lastTool,
       a.model,
-      a.isBackground ? 'in background' : undefined,
+      a.isBackground ? L.agents.background : undefined,
     ].filter((x): x is string => x !== undefined && x !== '')
 
     const born = now - a.startedAt
@@ -483,7 +490,7 @@ export const agentsSvg = (
 
     body +=
       `<g class="hov${born < DUR.rise * 2 ? ' a-rise' : ''}"${born < DUR.rise * 2 ? ` style="${since(born)}"` : ''}>` +
-      `<title>${esc(`${mono} · ${a.type} — ${a.description}\n${st.label.toLowerCase()} · ${time} · ${nTools(a.tools)}${a.model ? ` · ${a.model}` : ''}`)}</title>` +
+      `<title>${esc(`${mono} · ${a.type} — ${a.description}\n${L.status[a.status].toLowerCase()} · ${time} · ${L.tools(a.tools)}${a.model ? ` · ${a.model}` : ''}`)}</title>` +
       `<rect class="lift" x="${x0}" y="${y0}" width="${cw}" height="${CARD_H}" rx="8" fill="${C.raised}" stroke="${border}" stroke-opacity="${running ? 0.55 : 1}"/>` +
       // In onda: una luce scorre sul bordo superiore della scheda.
       (running
@@ -505,20 +512,20 @@ export const agentsSvg = (
 
   let h = firstY + shown.length * ROW + 4
   if (hidden > 0) {
-    body += `<text class="dim small" x="${BUS_X + 16}" y="${h + 6}">+ ${hidden} operatori precedenti</text>`
+    body += `<text class="dim small" x="${BUS_X + 16}" y="${h + 6}">${esc(L.agents.earlier(hidden))}</text>`
     h += 18
   }
-  return doc(w, h, body, `${liveCount} agenti in corso su ${ordered.length}`)
+  return doc(w, h, body, L.agents.alt(liveCount, ordered.length))
 }
 
 // ── Skill: chip in flusso, attive in ambra ───────────────────────────────────
 
-export const skillsSvg = (s: RegiaSnapshot, now: number, w: number): string => {
+export const skillsSvg = (s: RegiaSnapshot, now: number, w: number, L: Strings): string => {
   const uses = s.skills.reduce((sum, k) => sum + k.count, 0)
-  let body = head(w, 'SKILL', s.skills.length === 0 ? '' : `${s.skills.length} CARICATE · ${uses} USI`)
+  let body = head(w, L.skills.title, s.skills.length === 0 ? '' : L.skills.counts(s.skills.length, uses))
   if (s.skills.length === 0) {
-    body += emptyLine(w, BODY_Y + 12, 'Nessuna skill caricata in questa sessione.')
-    return doc(w, BODY_Y + 30, body, 'Nessuna skill')
+    body += emptyLine(w, BODY_Y + 12, L.skills.empty)
+    return doc(w, BODY_Y + 30, body, L.skills.altEmpty)
   }
   const chipH = 26
   const gap = 8
@@ -538,7 +545,7 @@ export const skillsSvg = (s: RegiaSnapshot, now: number, w: number): string => {
     const age = now - k.lastAt
     const isFresh = age < DUR.pop * 2
     body +=
-      `<g${isFresh ? ` class="a-pop" style="${since(age)}"` : ''}><title>${esc(`${k.name} — caricata ${k.count} ${k.count === 1 ? 'volta' : 'volte'}${isActive ? ' · in questo turno' : ''}`)}</title>` +
+      `<g${isFresh ? ` class="a-pop" style="${since(age)}"` : ''}><title>${esc(`${k.name} — ${L.skills.loaded(k.count)}${isActive ? ` · ${L.skills.thisTurn}` : ''}`)}</title>` +
       `<rect x="${x}" y="${y}" width="${cw}" height="${chipH}" rx="${chipH / 2}" fill="${C.raised}" stroke="${isActive ? C.run : C.frame}" stroke-opacity="${isActive ? 0.8 : 1}"/>` +
       (isActive
         ? `<circle class="a-breathe" cx="${x + 14}" cy="${y + chipH / 2}" r="3" fill="${C.run}" style="${phase(now, DUR.breathe * 2)}"/>`
@@ -549,22 +556,22 @@ export const skillsSvg = (s: RegiaSnapshot, now: number, w: number): string => {
     x += cw + gap
   }
   const h = y + chipH + 14
-  return doc(w, h, body, `${s.skills.length} skill caricate: ${s.skills.map(k => k.name).join(', ')}`)
+  return doc(w, h, body, L.skills.alt(s.skills.length, s.skills.map(k => k.name).join(', ')))
 }
 
 // ── Attività: corsie nel tempo, una per operatore ────────────────────────────
 
-export const timelineSvg = (s: RegiaSnapshot, now: number, w: number): string => {
+export const timelineSvg = (s: RegiaSnapshot, now: number, w: number, L: Strings): string => {
   const first = s.calls[0]?.startedAt ?? now
   const span = Math.min(5 * 60_000, Math.max(60_000, now - first))
   const start = now - span
   const visible = s.calls.filter(c => (c.endedAt ?? now) >= start)
-  const spanLabel = span >= 5 * 60_000 ? 'ULTIMI 5 MIN' : `ULTIMI ${fmtSpan(span).toUpperCase()}`
-  let body = head(w, 'ATTIVITÀ', spanLabel)
+  const spanLabel = L.timeline.last(fmtSpan(span >= 5 * 60_000 ? 5 * 60_000 : span, L).toUpperCase())
+  let body = head(w, L.timeline.title, spanLabel)
 
   if (visible.length === 0) {
-    body += emptyLine(w, BODY_Y + 12, 'Nessuna attività negli ultimi minuti.')
-    return doc(w, BODY_Y + 30, body, 'Nessuna attività recente')
+    body += emptyLine(w, BODY_Y + 12, L.timeline.empty)
+    return doc(w, BODY_Y + 30, body, L.timeline.altEmpty)
   }
 
   // Corsie: principale + i subagenti con chiamate nella finestra, in ordine di prima
@@ -593,7 +600,7 @@ export const timelineSvg = (s: RegiaSnapshot, now: number, w: number): string =>
     const x = xOf(t)
     body += `<line x1="${x}" y1="${top}" x2="${x}" y2="${top + plotH}" stroke="${C.grid}"/>`
     const ago = now - t
-    const label = ago === 0 ? 'ora' : ago >= 60_000 ? `-${ago / 60_000}m` : `-${ago / 1000}s`
+    const label = ago === 0 ? L.timeline.now : ago >= 60_000 ? `-${ago / 60_000}m` : `-${ago / 1000}s`
     body += `<text class="dim" x="${x}" y="${top + plotH + 13}" text-anchor="${ago === 0 ? 'end' : 'middle'}" style="font-size:9.5px">${label}</text>`
   }
 
@@ -603,7 +610,7 @@ export const timelineSvg = (s: RegiaSnapshot, now: number, w: number): string =>
     const y = top + i * laneH
     const agent = id === undefined ? undefined : s.agents.find(a => a.agentId === id)
     const name = id === undefined
-      ? 'principale'
+      ? L.timeline.main
       : agent === undefined ? id.slice(0, 8) : `${monos.get(agent.key) ?? '?'} ${agent.type}`
     const color = id === undefined
       ? (s.turn.isWorking ? C.run : C.ink3)
@@ -620,7 +627,7 @@ export const timelineSvg = (s: RegiaSnapshot, now: number, w: number): string =>
       const isLive = c.endedAt === undefined
       const fill = CATEGORY[c.category].color
       bars +=
-        `<g><title>${esc(`${c.tool.startsWith('mcp__') ? c.label : c.tool}${c.label && !c.tool.startsWith('mcp__') ? ` · ${c.label}` : ''}\n${isLive ? 'in corso' : fmtSpan(end - c.startedAt)}${c.isError ? ' · errore' : ''} · ${name}`)}</title>` +
+        `<g><title>${esc(`${c.tool.startsWith('mcp__') ? c.label : c.tool}${c.label && !c.tool.startsWith('mcp__') ? ` · ${c.label}` : ''}\n${isLive ? L.timeline.running : fmtSpan(end - c.startedAt, L)}${c.isError ? ` · ${L.timeline.error}` : ''} · ${name}`)}</title>` +
         `<rect${isLive ? ` class="a-breathe" style="${phase(now, DUR.breathe * 2)}"` : ''} x="${x}" y="${y + 5}" width="${bw}" height="10" rx="2" fill="${fill}" stroke="${C.screen}" stroke-width="1"/>` +
         (c.isError ? `<path d="M${x + bw / 2 - 3.5} ${y + 3} h7 l-3.5 -4 z" fill="${C.bad}"/>` : '') +
         `<rect class="hit" x="${x - 2}" y="${y}" width="${bw + 4}" height="${laneH}"/></g>`
@@ -639,7 +646,7 @@ export const timelineSvg = (s: RegiaSnapshot, now: number, w: number): string =>
   let x = PAD
   const present = CATEGORY_ORDER.filter(cat => visible.some(c => c.category === cat))
   for (const cat of present) {
-    const label = CATEGORY[cat].label
+    const label = L.category[cat]
     const lw = 14 + textWidth(label, 10) + 14
     if (x + lw > w - PAD) {
       x = PAD
@@ -649,7 +656,7 @@ export const timelineSvg = (s: RegiaSnapshot, now: number, w: number): string =>
     x += lw
   }
   const h = y + 14
-  return doc(w, h, body, `Attività: ${visible.length} chiamate in ${laneIds.length} corsie`)
+  return doc(w, h, body, L.timeline.alt(visible.length, laneIds.length))
 }
 
 // ── Strumenti: classifica orizzontale ────────────────────────────────────────
@@ -659,18 +666,19 @@ export const toolsSvg = (
   w: number,
   categoryOf: (tool: string) => RegiaCategory,
   nameOf: (tool: string) => string,
+  L: Strings,
 ): string => {
   const entries = Object.entries(s.toolCounts).sort((a, b) => b[1] - a[1])
   const total = entries.reduce((sum, [, n]) => sum + n, 0)
   let body = head(
     w,
-    'STRUMENTI',
-    total === 0 ? '' : `${total} CHIAMATE${s.errorCount > 0 ? ` · ${s.errorCount} ERRORI` : ''}`,
+    L.toolsBoard.title,
+    total === 0 ? '' : L.toolsBoard.counts(total, s.errorCount),
     s.errorCount > 0 ? C.bad : C.ink3,
   )
   if (entries.length === 0) {
-    body += emptyLine(w, BODY_Y + 12, 'Ancora nessuna chiamata.')
-    return doc(w, BODY_Y + 30, body, 'Nessuno strumento usato')
+    body += emptyLine(w, BODY_Y + 12, L.toolsBoard.empty)
+    return doc(w, BODY_Y + 30, body, L.toolsBoard.altEmpty)
   }
   const top = entries.slice(0, 8)
   const max = top[0]?.[1] ?? 1
@@ -682,7 +690,7 @@ export const toolsSvg = (
     const y = BODY_Y + i * rowH
     const bw = Math.max(4, (n / max) * barMax)
     body +=
-      `<g class="hov"><title>${esc(`${tool} — ${n} chiamate`)}</title>` +
+      `<g class="hov"><title>${esc(`${tool} — ${L.calls(n)}`)}</title>` +
       `<rect class="hit" x="${PAD}" y="${y - 4}" width="${w - PAD * 2}" height="${rowH}"/>` +
       `<text x="${PAD}" y="${y + 9}">${esc(fit(nameOf(tool), labelW - 12))}</text>` +
       `<rect x="${barX}" y="${y + 1}" width="${bw}" height="9" rx="2" fill="${CATEGORY[categoryOf(tool)].color}"/>` +
@@ -692,21 +700,21 @@ export const toolsSvg = (
   if (entries.length > top.length) {
     const rest = entries.slice(top.length).reduce((sum, [, n]) => sum + n, 0)
     const others = entries.length - top.length
-    body += `<text class="dim small" x="${PAD}" y="${h + 4}">+ ${others === 1 ? 'un altro strumento' : `altri ${others} strumenti`} · ${rest} ${rest === 1 ? 'chiamata' : 'chiamate'}</text>`
+    body += `<text class="dim small" x="${PAD}" y="${h + 4}">${esc(L.toolsBoard.more(others, rest))}</text>`
     h += 18
   }
-  return doc(w, h, body, `Strumenti più usati: ${top.map(([t, n]) => `${t} ${n}`).join(', ')}`)
+  return doc(w, h, body, L.toolsBoard.alt(top.map(([t, n]) => `${t} ${n}`).join(', ')))
 }
 
 // ── File toccati ─────────────────────────────────────────────────────────────
 
-export const filesSvg = (s: RegiaSnapshot, now: number, w: number): string => {
+export const filesSvg = (s: RegiaSnapshot, now: number, w: number, L: Strings): string => {
   const files = s.files.slice(0, 8)
   const edited = s.files.filter(f => f.edits > 0).length
-  let body = head(w, 'FILE TOCCATI', s.files.length === 0 ? '' : `${edited} MODIFICATI · ${s.files.length} TOTALI`)
+  let body = head(w, L.files.title, s.files.length === 0 ? '' : L.files.counts(edited, s.files.length))
   if (files.length === 0) {
-    body += emptyLine(w, BODY_Y + 12, 'Nessun file letto o modificato.')
-    return doc(w, BODY_Y + 30, body, 'Nessun file')
+    body += emptyLine(w, BODY_Y + 12, L.files.empty)
+    return doc(w, BODY_Y + 30, body, L.files.altEmpty)
   }
   const rowH = 20
   files.forEach((f, i) => {
@@ -714,7 +722,7 @@ export const filesSvg = (s: RegiaSnapshot, now: number, w: number): string => {
     const parts = f.path.split('/').filter(Boolean)
     const name = parts.pop() ?? f.path
     const dir = parts.slice(-2).join('/')
-    const counts = [f.edits > 0 ? `${f.edits} mod` : '', f.reads > 0 ? `${f.reads} lett` : '']
+    const counts = [f.edits > 0 ? L.files.edits(f.edits) : '', f.reads > 0 ? L.files.reads(f.reads) : '']
       .filter(Boolean)
       .join(' · ')
     const nameW = Math.min(textWidth(name, 11), w * 0.45)
@@ -732,5 +740,5 @@ export const filesSvg = (s: RegiaSnapshot, now: number, w: number): string => {
       `<text class="dim small" x="${w - PAD}" y="${y + 8}" text-anchor="end">${counts}</text></g>`
   })
   const h = BODY_Y + files.length * rowH + 6
-  return doc(w, h, body, `${s.files.length} file toccati`)
+  return doc(w, h, body, L.files.alt(s.files.length))
 }

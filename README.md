@@ -1,54 +1,78 @@
-# Regia
+<p align="center">
+  <img src="docs/media/hero.svg" alt="Regia: a live control room for Claude Code" width="100%">
+</p>
 
-Una sala di controllo grafica per **Claude Code**: un pannello nel Code tab che mostra in tempo reale cosa sta facendo la sessione.
+<p align="center">
+  <a href="https://purpleheads2026.github.io/Mod_claude/"><b>▶&nbsp;Live demo</b></a>
+  &nbsp;·&nbsp;
+  <a href="#install">Install</a>
+  &nbsp;·&nbsp;
+  <a href="#anatomy-of-the-radar">Reading the radar</a>
+  &nbsp;·&nbsp;
+  <a href="#how-the-motion-works">How the motion works</a>
+</p>
 
-- **Radar**: al centro la sessione principale, con stato, cronometro del turno e anello del contesto. Intorno girano i subagenti come satelliti, e sulla corona scorrono gli strumenti degli ultimi 60 secondi.
-- **Strumentazione**: contesto usato, limite delle 5 ore, token, composizione del contesto, limiti di utilizzo.
-- **Agenti**, **skill** caricate, **attività** nel tempo, **strumenti** più usati, **file** toccati.
+**Regia** is Italian for *control room*, the booth a live broadcast is run from. It is a plugin for [Claude Code](https://claude.com/claude-code) that adds a panel to the desktop app's Code tab and shows, in real time, what your session is doing: the subagents at work, the skills loaded, every tool call, how full the context is and how much of your usage window is left.
 
-Il motion è agganciato all'orologio reale: le animazioni non ripartono da capo quando il pannello si ridisegna. Con "riduci movimento" attivo nel sistema restano solo le dissolvenze.
+Everything moves at the speed of the session: tool calls are born on the radar's needle and sweep around as they age, subagents orbit the core while they work, and gauges grow from their last reading to the new one.
 
-## Requisiti
+## The panel
 
-- Claude Code con il supporto ai mod di function hooks. Regia è testata sulla **2.1.293**; versioni più vecchie, come la 2.1.233, non caricano il modulo degli hook.
-- Il pannello grafico compare nel **Code tab dell'app desktop**. Nel terminale c'è una versione testuale compatta.
+<p align="center">
+  <img src="docs/media/wall.svg" alt="The Regia panel: radar, agents, instruments and skills" width="100%">
+</p>
 
-Per vedere la versione installata:
+| Monitor | What it shows |
+| --- | --- |
+| **Radar** | The main session at the core, with status, turn timer and context ring. Subagents orbit it as satellites, and the last 60 seconds of tool calls run around the rim. |
+| **Agents** | One card per subagent, with the same monogram as its satellite. Each card shows status, elapsed time, the model and a strip of the tools it called. |
+| **Instruments** | Context in use, your 5-hour usage limit, output tokens, what fills the context and every usage window with its reset time. |
+| **Skills** | Every skill loaded in the session and how often. The ones loaded this turn are highlighted. |
+| **Activity** | One lane per agent over the last five minutes. The lanes scroll with time. |
+| **Tools** · **Files** | The tools you lean on most, and every file read or edited. |
+
+The panel follows your system's *reduce motion* setting: movement stops and only the fading of old tracks remains. In a terminal session Regia draws a compact text version instead.
+
+## Anatomy of the radar
+
+<p align="center">
+  <img src="docs/media/anatomy.svg" alt="The Regia radar with labels: now, satellites, context ring, tool tracks, the core" width="100%">
+</p>
+
+- **Now**: the needle at twelve o'clock. Every tool call starts there and sweeps clockwise at 6° a second, so its angle is its age.
+- **Tool tracks**: one ring per agent, with the main session on the outside. Colour is the kind of tool (read, write, shell, web, agents, skills, MCP), and tracks fade out over 60 seconds.
+- **Satellites**: subagents in fixed slots, in the order they were born, so none jumps around. A dashed beam flows to each one while it works; it pops in when it starts and sends out a ring when it finishes.
+- **The core**: *on air* or *standby*, the turn timer, and a ring for how full the context window is.
+
+## Install
+
+You need Claude Code **2.1.293 or later**; older builds, such as 2.1.233, do not load function-hook plugins. Check with:
 
 ```bash
 claude --version
 ```
 
-## Installazione
+This repository is a plugin marketplace: the plugin is `regia` and the marketplace is `mod-claude`.
 
-La repo è un marketplace di plugin: il plugin si chiama `regia`, il marketplace `mod-claude`.
+### From a terminal session
 
-### Da GitHub, con il comando nella sessione
-
-In una sessione di Claude Code **da terminale** scrivi:
+At the Claude Code prompt, type:
 
 ```
 /plugin install regia --marketplace purpleheads2026/Mod_claude
 ```
 
-Poi:
+Answer `y` to add the marketplace, then pick the **user** scope.
 
-1. alla domanda **Add marketplace?** rispondi `y`;
-2. scegli lo scope **user** (il primo della lista) e premi Invio.
+The `/plugin` command is not available in the desktop app's Code tab. A plugin installed from a terminal at user scope loads in desktop sessions too, as long as both use the same configuration profile: if the app uses its own folder, export the same `CLAUDE_CONFIG_DIR` before launching `claude`.
 
-Il comando `/plugin` non è disponibile nel Code tab dell'app desktop. Il plugin installato da terminale con scope user si carica però anche nelle sessioni del desktop, purché usino lo stesso profilo di configurazione: se l'app usa una cartella sua, esporta lo stesso `CLAUDE_CONFIG_DIR` prima di lanciare `claude`.
-
-### Da GitHub, con la CLI
+### With the CLI
 
 ```bash
-claude plugin marketplace add purpleheads2026/Mod_claude
+claude plugin install regia --marketplace purpleheads2026/Mod_claude --scope user
 ```
 
-```bash
-claude plugin install regia@mod-claude --scope user
-```
-
-### Da una copia locale (consigliato per modificarlo)
+### From a local clone (best if you want to tinker)
 
 ```bash
 git clone https://github.com/purpleheads2026/Mod_claude.git
@@ -62,30 +86,29 @@ claude plugin marketplace add "$PWD/Mod_claude"
 claude plugin install regia@mod-claude --scope user
 ```
 
-Con un marketplace locale Claude Code legge il plugin **direttamente dalla cartella**: dopo un `git pull` o una modifica basta un `/reload-plugins`, senza reinstallare. Per controllare da dove viene letto:
+With a local marketplace Claude Code reads the plugin straight from the folder, so after a `git pull` or an edit a `/reload-plugins` is enough. `claude plugin list` shows where it is read from (`Read from:`).
+
+## Using it
+
+- **New sessions** load Regia on their own and open the panel at start, if there is room.
+- **Sessions already open**: run `/reload-plugins`, or close and reopen the session.
+- **Open the panel** at any time with `/regia`.
+
+In the panel, **Compact / Expand** switches between the radar, agents and skills only and the full panel. **Reset stats** clears calls, agents, skills and files for the session; context and limits stay. While subagents are working, the status line reads *Regia · N agents running*.
+
+## Language
+
+The panel speaks English by default and Italian on request. To switch:
 
 ```bash
-claude plugin list
+echo '{"language":"it"}' | claude plugin configure regia@mod-claude --values-stdin
 ```
 
-Accanto a `regia@mod-claude` compare `Read from: <cartella>`.
+Use `"en"` to switch back. Open sessions pick it up after `/reload-plugins` or a restart.
 
-## Dopo l'installazione
+## Update and uninstall
 
-- **Sessioni nuove**: Regia si carica da sola e il pannello si apre all'avvio, se c'è spazio.
-- **Sessioni già aperte**: scrivi `/reload-plugins`, oppure chiudi e riapri la sessione.
-- **Aprire il pannello** in qualsiasi momento: `/regia`.
-
-Nel pannello:
-
-- **Compatta / Espandi**: tiene solo radar, agenti e skill, oppure mostra tutto;
-- **Azzera statistiche**: azzera chiamate, agenti, skill e file della sessione. Contesto e limiti restano.
-
-Mentre lavorano dei subagenti, la status line mostra "Regia · N agenti in corso".
-
-## Aggiornare e disinstallare
-
-Con l'installazione da GitHub:
+When installed from GitHub:
 
 ```bash
 claude plugin marketplace update mod-claude
@@ -95,34 +118,46 @@ claude plugin marketplace update mod-claude
 claude plugin update regia@mod-claude
 ```
 
-Con la copia locale bastano `git pull` e `/reload-plugins` nelle sessioni aperte.
-
-Per disinstallare:
+With a local clone, `git pull` and `/reload-plugins` in open sessions are enough. To uninstall:
 
 ```bash
 claude plugin uninstall regia@mod-claude
 ```
 
-## Sviluppo
+## How the motion works
 
-La mappa del codice (cosa fa ogni file, come si collegano, le regole del rendering sul desktop) è in [overview.md](overview.md).
+Each monitor is a self-contained SVG. The panel redraws it every second while Claude is working, and every redraw replaces the whole document. That would normally restart every animation from zero. Regia avoids this by tying every animation to the wall clock with a negative `animation-delay`:
 
-Per controllare il plugin come lo legge l'engine:
+- an **event** animation, such as a satellite popping in, is delayed by minus its age, so one that started 5 seconds ago is already finished and one that started 100 ms ago resumes from there;
+- a **loop**, such as the radar sweep or a beam's flow, is delayed by minus `now mod period`, so every loop stays in phase across redraws.
+
+Tool tracks are drawn at absolute angles (`time mod 60 s`) inside a group that rotates at 6°/s. On screen, a track's angle is always its age.
+
+Two more rules came out of testing on the real desktop app:
+
+- **Rendering is deterministic.** The panel never reads the live clock while drawing, only the timer's last beat or the latest recorded event. The engine redraws the pane on every scroll and every click, and if the SVGs changed each time, image swaps would nudge the scroll position and trigger yet another redraw.
+- **Monitors are images.** The desktop shows interactive SVGs in a 150 px high frame, so every monitor is drawn as an image instead.
+
+## Development
+
+The code map, with what each file does, how they connect and the rendering rules, is in [overview.md](overview.md) (in Italian).
 
 ```bash
 claude plugin validate regia
 ```
 
-Per i test:
-
 ```bash
 claude plugin test regia
 ```
 
-Per l'anteprima nel browser con dati finti, compresa una sessione simulata in tempo reale:
+Preview with fake data, including a live simulated session:
 
 ```bash
 node regia/preview/build.mjs
 ```
 
-Poi servi la cartella `regia/preview/` con un server statico qualsiasi e apri `live.html?w=400`.
+Then serve `regia/preview/` with any static server and open `live.html?w=400` (add `&lang=it` for Italian). The README images and the demo page are generated from the plugin's own code:
+
+```bash
+node scripts/showcase.mjs
+```

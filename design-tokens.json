@@ -1,0 +1,114 @@
+{
+  "_comment": "Token della pagina GitHub Pages (docs/index.html) e delle immagini del README. Colori, raggi e motion di base sono quelli del plugin (regia/design-tokens.json): se cambiano lì, cambiano qui. In più la scala tipografica della pagina.",
+  "spacing": {
+    "1": "4px",
+    "2": "8px",
+    "3": "12px",
+    "4": "16px",
+    "5": "24px",
+    "6": "32px",
+    "7": "48px",
+    "8": "64px",
+    "9": "96px"
+  },
+  "typography": {
+    "font-families": {
+      "display": "'Barlow Condensed', 'DIN Alternate', 'Bahnschrift', sans-serif",
+      "body": "'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace"
+    },
+    "scale": {
+      "display-xl": {
+        "clamp": "clamp(80px, 12vw, 148px)",
+        "line-height": "0.86",
+        "weight": 500,
+        "use": "Wordmark Regia, uno per pagina"
+      },
+      "display-lg": {
+        "clamp": "clamp(40px, 6vw, 64px)",
+        "line-height": "1",
+        "weight": 500,
+        "use": "Titoli di sezione (H2)"
+      },
+      "body-lg": {
+        "size": "18px",
+        "line-height": "1.55",
+        "weight": 400,
+        "use": "Lede"
+      },
+      "body-md": {
+        "size": "15px",
+        "line-height": "1.6",
+        "weight": 400,
+        "use": "Testo corrente"
+      },
+      "body-sm": {
+        "size": "14px",
+        "weight": 400,
+        "use": "Codice nei blocchi di installazione"
+      },
+      "label": {
+        "size": "12px",
+        "weight": 600,
+        "letter-spacing": "0.16–0.28em",
+        "use": "Eyebrow, nav, titoli dei passi, maiuscole"
+      },
+      "label-sm": {
+        "size": "11px",
+        "weight": 600,
+        "letter-spacing": "0.12–0.2em",
+        "use": "Barra della demo, pulsanti COPY, selettore lingua"
+      }
+    }
+  },
+  "color": {
+    "_comment": "Hex dal plugin, più lo sfondo pagina.",
+    "space": {
+      "page": {
+        "bg": "#0E0F12"
+      },
+      "base": {
+        "screen": "#15171B",
+        "raised": "#1C1F25",
+        "frame": "#2A2E36",
+        "grid": "#22252C",
+        "track": "#262A31",
+        "ink": "#F1EEE6",
+        "ink-2": "#B4B0A6",
+        "ink-3": "#8D8B84",
+        "system": "#8F8A7F"
+      },
+      "status": {
+        "running": "#fab219",
+        "good": "#0ca30c",
+        "bad": "#d03b3b",
+        "wait": "#8C93A1"
+      },
+      "category": {
+        "read": "#3987e5",
+        "write": "#d95926",
+        "shell": "#199e70",
+        "web": "#c98500",
+        "agent": "#d55181",
+        "skill": "#008300",
+        "mcp": "#9085e9",
+        "other": "#5E636D"
+      }
+    }
+  },
+  "motion": {
+    "easing": {
+      "out": "cubic-bezier(.23,1,.32,1)"
+    },
+    "duration": {
+      "hover": "200ms",
+      "press": "160ms (scale .97)",
+      "ping": "1600ms (spia LIVE DEMO)"
+    }
+  },
+  "radius": {
+    "code": "10px",
+    "button-sm": "6px",
+    "pill": "999px",
+    "card": "16px"
+  }
+}

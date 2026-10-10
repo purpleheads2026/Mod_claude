@@ -31,6 +31,8 @@ const load = name => import(`${pathToFileURL(join(cache, `${name}.mjs`)).href}?t
 const M = await load('model')
 const S = await load('svg')
 const R = await load('radar')
+const I = await load('i18n')
+const L = I.STRINGS.en
 
 const NOW = Date.parse('2026-10-10T10:30:00Z')
 const s = buildScenario(M, NOW)
@@ -38,13 +40,13 @@ const empty = M.emptySnapshot(NOW - 20_000)
 
 const stack = (snap, w, isCompact = false) =>
   [
-    R.radarSvg(snap, NOW, w),
-    ...(isCompact ? [] : [S.metersSvg(snap, NOW, w)]),
-    S.agentsSvg(snap, NOW, w, isCompact),
-    S.skillsSvg(snap, NOW, w),
+    R.radarSvg(snap, NOW, w, L),
+    ...(isCompact ? [] : [S.metersSvg(snap, NOW, w, L)]),
+    S.agentsSvg(snap, NOW, w, isCompact, L),
+    S.skillsSvg(snap, NOW, w, L),
     ...(isCompact
       ? []
-      : [S.timelineSvg(snap, NOW, w), S.toolsSvg(snap, w, M.categorize, M.toolName), S.filesSvg(snap, NOW, w)]),
+      : [S.timelineSvg(snap, NOW, w, L), S.toolsSvg(snap, w, M.categorize, M.toolName, L), S.filesSvg(snap, NOW, w, L)]),
   ]
     .map(svg => `<div class="mon">${svg}</div>`)
     .join('\n')
@@ -84,18 +86,21 @@ const live = `<script type="module">
 import * as M from './.cache/model.mjs'
 import * as S from './.cache/svg.mjs'
 import * as R from './.cache/radar.mjs'
+import { STRINGS } from './.cache/i18n.mjs'
 import { buildScenario, simulate } from './scenario.mjs'
 
-const W = Number(new URLSearchParams(location.search).get('w') ?? 400)
+const params = new URLSearchParams(location.search)
+const W = Number(params.get('w') ?? 400)
+const L = STRINGS[params.get('lang') === 'it' ? 'it' : 'en']
 let snap = buildScenario(M, Date.now())
 const monitors = [
-  ['radar', 'img', now => R.radarSvg(snap, now, W)],
-  ['meters', 'img', now => S.metersSvg(snap, now, W)],
-  ['agents', 'img', now => S.agentsSvg(snap, now, W)],
-  ['skills', 'img', now => S.skillsSvg(snap, now, W)],
-  ['timeline', 'img', now => S.timelineSvg(snap, now, W)],
-  ['tools', 'img', () => S.toolsSvg(snap, W, M.categorize, M.toolName)],
-  ['files', 'img', now => S.filesSvg(snap, now, W)],
+  ['radar', 'img', now => R.radarSvg(snap, now, W, L)],
+  ['meters', 'img', now => S.metersSvg(snap, now, W, L)],
+  ['agents', 'img', now => S.agentsSvg(snap, now, W, false, L)],
+  ['skills', 'img', now => S.skillsSvg(snap, now, W, L)],
+  ['timeline', 'img', now => S.timelineSvg(snap, now, W, L)],
+  ['tools', 'img', () => S.toolsSvg(snap, W, M.categorize, M.toolName, L)],
+  ['files', 'img', now => S.filesSvg(snap, now, W, L)],
 ]
 const root = document.querySelector('#wall')
 root.style.width = W + 'px'

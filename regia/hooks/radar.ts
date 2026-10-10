@@ -17,6 +17,7 @@
 // Senza motion il gruppo ha la rotazione dell'istante del ridisegno come attributo.
 
 import type { RegiaSnapshot } from '../types'
+import type { Strings } from './i18n'
 import { DUR, phase, since } from './motion'
 import {
   badge,
@@ -33,7 +34,6 @@ import {
   head,
   isRunning,
   monograms,
-  nTools,
   PAD,
   STATUS,
   swatch,
@@ -67,13 +67,32 @@ const local = (t: number): number => -((t % WINDOW) / WINDOW) * 360
 
 const gaugeColor = (pct: number): string => (pct >= 90 ? C.bad : pct >= 75 ? C.run : C.ink)
 
-export const radarSvg = (s: RegiaSnapshot, now: number, w: number): string => {
-  const isLive = s.turn.isWorking
+/**
+ * La geometria del quadrante per una larghezza e un numero di corsie: unica fonte per
+ * radarSvg e per le immagini della repo (scripts/showcase.mjs), che puntano agli elementi.
+ */
+export const radarGeometry = (w: number, laneCount: number) => {
   const D = Math.min(w - PAD * 2, 440)
   // 28 px di margine: le etichette 15s/45s stanno fuori dall'anello e non devono uscire dal viewBox.
   const rOut = D / 2 - 28
   const cx = w / 2
   const cy = 40 + 16 + rOut
+  const pitch = Math.max(8, Math.min(11, rOut * 0.068))
+  const thick = pitch - 3.5
+  const laneR = (i: number): number => rOut - 7 - i * pitch
+  const bandIn = laneR(laneCount - 1) - thick / 2 - 4
+  const rCore = rOut * 0.28
+  const rGauge = rCore + 8
+  const rSat = (bandIn + rGauge + 6) / 2
+  const nodeR = Math.max(10, Math.min(13, rOut * 0.075))
+  /** Centro del satellite nato per `index`-esimo (posizioni fisse, lati alternati). */
+  const satellite = (index: number): [number, number] =>
+    at(cx, cy, rSat, SLOT_START + (SLOT_ORDER[index % SLOTS] ?? 0) * (360 / SLOTS))
+  return { cx, cy, rOut, pitch, thick, laneR, bandIn, rCore, rGauge, rSat, nodeR, satellite, at: (r: number, deg: number) => at(cx, cy, r, deg) }
+}
+
+export const radarSvg = (s: RegiaSnapshot, now: number, w: number, L: Strings): string => {
+  const isLive = s.turn.isWorking
   const monos = monograms(s.agents)
 
   // ── Corsie della corona: principale + fino a 3 operatori, in ordine di nascita.
@@ -86,16 +105,7 @@ export const radarSvg = (s: RegiaSnapshot, now: number, w: number): string => {
     { label: 'CL' },
     ...laneAgents.map(a => ({ ...(a.agentId === undefined ? {} : { id: a.agentId }), label: monos.get(a.key) ?? '?' })),
   ]
-  const pitch = Math.max(8, Math.min(11, rOut * 0.068))
-  const thick = pitch - 3.5
-  const laneR = (i: number): number => rOut - 7 - i * pitch
-  const bandIn = laneR(lanes.length - 1) - thick / 2 - 4
-
-  // ── Nucleo e orbita.
-  const rCore = rOut * 0.28
-  const rGauge = rCore + 8
-  const rSat = (bandIn + rGauge + 6) / 2
-  const nodeR = Math.max(10, Math.min(13, rOut * 0.075))
+  const { cx, cy, rOut, thick, laneR, bandIn, rCore, rGauge, rSat, nodeR } = radarGeometry(w, lanes.length)
 
   const pct = contextPercent(s)
   const rot = ((now % WINDOW) / WINDOW) * 360
@@ -104,7 +114,7 @@ export const radarSvg = (s: RegiaSnapshot, now: number, w: number): string => {
 
   // Intestazione.
   const lim = fiveHourLimit(s)
-  const right = [s.turn.count > 0 ? `TURNO ${s.turn.count}` : '', lim === undefined ? '' : `5 ORE ${Math.round(lim.percentUsed)}%`]
+  const right = [s.turn.count > 0 ? L.radar.turn(s.turn.count) : '', lim === undefined ? '' : L.radar.five(Math.round(lim.percentUsed))]
     .filter(Boolean)
     .join(' · ')
   body += head(w, 'REGIA', right, isLive ? C.run : C.ink3)
@@ -133,7 +143,7 @@ export const radarSvg = (s: RegiaSnapshot, now: number, w: number): string => {
     tick(90, '15s', 'start', 0, 3) +
     tick(180, '30s', 'middle', 0, 8) +
     tick(270, '45s', 'end', 0, 3) +
-    `<text class="cap" x="${cx}" y="${n2(cy - rOut - 14)}" text-anchor="middle" style="fill:${isLive ? C.run : C.ink3}">ORA</text>`
+    `<text class="cap" x="${cx}" y="${n2(cy - rOut - 14)}" text-anchor="middle" style="fill:${isLive ? C.run : C.ink3}">${L.radar.now}</text>`
 
   if (isLive) {
     // Scia: uno spicchio di 36° dietro la lancetta, dove nascono le tracce, che sfuma
@@ -237,7 +247,7 @@ export const radarSvg = (s: RegiaSnapshot, now: number, w: number): string => {
     nodes +=
       waves +
       `<g${age < DUR.pop * 2 ? ` class="a-pop" style="${since(age)}"` : ''}>` +
-      `<title>${esc(`${mono} · ${a.type} — ${a.description}\n${st.label.toLowerCase()} · ${time}`)}</title>` +
+      `<title>${esc(`${mono} · ${a.type} — ${a.description}\n${L.status[a.status].toLowerCase()} · ${time}`)}</title>` +
       badge(x, y, nodeR, mono, a.status, now) +
       `<text class="dim" x="${n2(x)}" y="${n2(y + nodeR + 13)}" text-anchor="middle" style="font-size:9px${running ? `;fill:${C.run}` : ''}">${time}</text>` +
       `</g>`
@@ -270,14 +280,15 @@ export const radarSvg = (s: RegiaSnapshot, now: number, w: number): string => {
       `<circle${grow ? ` class="a-dash" style="${since(now - (m ?? now))};--from:${n2(p - (prev ?? 0))}"` : ''} cx="${cx}" cy="${n2(cy)}" r="${n2(rGauge)}" fill="none" stroke="${gaugeColor(p)}" stroke-width="4" pathLength="100" stroke-dasharray="${n2(p)} 100" transform="rotate(-90 ${cx} ${n2(cy)})"/>`
   }
 
-  const word = isLive ? 'IN ONDA' : 'IN ATTESA'
+  const word = isLive ? L.radar.live : L.radar.idle
   const clock = isLive && s.turn.startedAt !== undefined
     ? fmtClock(now - s.turn.startedAt)
     : s.turn.lastMs !== undefined ? fmtClock(s.turn.lastMs) : '—'
-  // Sotto ~46 px di raggio 'contesto 43%' tocca l'anello: resta solo il numero.
+  // Sotto ~46 px di raggio la forma lunga ('context 43%') tocca l'anello: si usa la corta.
   const ctxFs = Math.max(8, rCore * 0.19)
-  const ctxFull = pct === undefined ? 'contesto —' : `contesto ${Math.round(pct)}%`
-  const ctxShort = pct === undefined ? 'ctx —' : `ctx ${Math.round(pct)}%`
+  const pctText = pct === undefined ? '—' : `${Math.round(pct)}%`
+  const ctxFull = L.radar.context(pctText)
+  const ctxShort = L.radar.contextShort(pctText)
   const ctxLabel = textWidth(ctxFull, ctxFs) <= rCore * 1.55 ? ctxFull : ctxShort
   body +=
     `<text x="${cx}" y="${n2(cy - rCore * 0.36)}" text-anchor="middle" style="font-size:${Math.max(8, rCore * 0.2).toFixed(1)}px;letter-spacing:.2em;font-weight:700;fill:${isLive ? C.run : C.ink3}">${word}</text>` +
@@ -298,21 +309,23 @@ export const radarSvg = (s: RegiaSnapshot, now: number, w: number): string => {
       `<text class="ink" x="${PAD + 14}" y="${y}">${esc(fit(name, 130))}</text>` +
       `<text x="${PAD + 24 + nameW}" y="${y}">${esc(fit(isMcp ? '' : live.label, w - PAD * 2 - nameW - 26))}</text>`
   } else if (s.turn.prompt !== undefined) {
-    // Il testo della persona tra virgolette; una notifica interna (↳) così com'è.
+    // Il testo della persona tra virgolette; una notifica interna (↳chiave) tradotta.
     const p = s.turn.prompt
-    body += `<text class="dim" x="${PAD}" y="${y}">${esc(p.startsWith('↳') ? fit(p, w - PAD * 2) : `«${fit(p, w - PAD * 2 - 14)}»`)}</text>`
+    const key = p.slice(1).trim()
+    const shown = p.startsWith('↳') ? `↳ ${L.notices[key] ?? key}` : `«${fit(p, w - PAD * 2 - 14)}»`
+    body += `<text class="dim" x="${PAD}" y="${y}">${esc(fit(shown, w - PAD * 2))}</text>`
   } else {
-    body += `<text x="${PAD}" y="${y}">${esc(fit('Scrivi un prompt: la regia si accende.', w - PAD * 2))}</text>`
+    body += `<text x="${PAD}" y="${y}">${esc(fit(L.radar.empty, w - PAD * 2))}</text>`
   }
 
   y += 18
   const total = Object.values(s.toolCounts).reduce((a, b) => a + b, 0)
-  const errs = s.errorCount > 0 ? `${s.errorCount} ${s.errorCount === 1 ? 'errore' : 'errori'}` : undefined
-  const sessionSpan = fmtSpan(now - s.startedAt)
+  const errs = s.errorCount > 0 ? L.errors(s.errorCount) : undefined
+  const sessionSpan = fmtSpan(now - s.startedAt, L)
   const metaSets = [
-    [s.meters.model, nTools(total), errs, `sessione ${sessionSpan}`],
-    [s.meters.model, nTools(total), errs, `sess. ${sessionSpan}`],
-    [nTools(total), errs, `sess. ${sessionSpan}`],
+    [s.meters.model, L.tools(total), errs, L.radar.session(sessionSpan)],
+    [s.meters.model, L.tools(total), errs, L.radar.sessionShort(sessionSpan)],
+    [L.tools(total), errs, L.radar.sessionShort(sessionSpan)],
   ].map(set => set.filter((x): x is string => x !== undefined && x !== ''))
   const metaMax = Math.floor((w - PAD * 2) / 6)
   const meta = metaSets.find(set => set.join(' · ').length <= metaMax) ?? metaSets[2] ?? []
@@ -323,7 +336,7 @@ export const radarSvg = (s: RegiaSnapshot, now: number, w: number): string => {
     y += 22
     let x = PAD
     for (const cat of present) {
-      const label = CATEGORY[cat].label
+      const label = L.category[cat]
       const lw = 14 + textWidth(label, 10) + 14
       if (x + lw > w - PAD) {
         x = PAD
@@ -336,7 +349,7 @@ export const radarSvg = (s: RegiaSnapshot, now: number, w: number): string => {
   const h = y + 16
 
   const running = s.agents.filter(isRunning).length
-  const label = `Regia: ${word.toLowerCase()}, turno ${s.turn.count}, ${clock}; ${running} agenti in corso; ${recent.length} chiamate nell'ultimo minuto`
+  const label = L.radar.alt(word.toLowerCase(), s.turn.count, clock, running, recent.length)
   return doc(w, h, body, label)
 }
 

@@ -1,7 +1,16 @@
 {
   "name": "regia",
-  "version": "0.2.2",
-  "description": "Sala di controllo grafica della sessione: radar di agenti, skill e strumenti, contesto e costi in tempo reale, con motion design.",
+  "version": "0.3.0",
+  "description": "A graphic control room for Claude Code: a live radar of agents, skills and tools, with context and usage limits, in motion.",
   "author": { "name": "Samuel" },
-  "types": "./types/index.d.ts"
+  "types": "./types/index.d.ts",
+  "userConfig": {
+    "language": {
+      "type": "string",
+      "title": "Language",
+      "description": "Language of the Regia panel: en (English) or it (Italiano).",
+      "options": ["en", "it"],
+      "default": "en"
+    }
+  }
 }
