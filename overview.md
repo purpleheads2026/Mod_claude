@@ -16,6 +16,7 @@ strumenti usati, contesto/costo/rate limit — dentro un pannello del Code tab.
 ```
 Mod_claude/
 ├── overview.md                      questa mappa
+├── README.md                        cos'è Regia, requisiti, installazione, uso, aggiornamento
 ├── .claude-plugin/marketplace.json  rende la repo un marketplace (plugin: regia → ./regia)
 ├── .claude/launch.json              server statico per l'anteprima (porta 4317)
 ├── .gitignore                       esclude tipi generati dall'engine e output anteprima
