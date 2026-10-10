@@ -241,12 +241,27 @@ const limitLabel = (kind        , L         )         => {
   return known === undefined ? kind.replace(/[_-]+/g, ' ') : L.limit[known]
 }
 
+/** Durata compatta per spazi stretti (i tile): "2h 12m", "3d 4h", "45m". */
+const fmtSpanCompact = (ms        , L         )         => {
+  const u = L.units
+  const m = Math.max(1, Math.round(ms / 60_000))
+  if (m < 60) return `${m}m`
+  const h = Math.floor(m / 60)
+  if (h < 24) return `${h}${u.h} ${m % 60}m`
+  return `${Math.floor(h / 24)}${u.d} ${h % 24}${u.h}`
+}
+
 /** Quanto manca all'azzeramento di una finestra, come durata già formattata ('' se ignoto). */
-const resetSpan = (iso                    , now        , L         )         => {
+const resetSpan = (
+  iso                    ,
+  now        ,
+  L         ,
+  format                                     = fmtSpan,
+)         => {
   if (iso === undefined) return ''
   const at = Date.parse(iso)
   if (Number.isNaN(at) || at <= now) return ''
-  return fmtSpan(at - now, L)
+  return format(at - now, L)
 }
 
 export const limitColor = (pct        )         => (pct >= 90 ? C.bad : pct >= 75 ? C.run : C.ink2)
@@ -291,7 +306,7 @@ export const metersSvg = (s               , now        , w        , L         ) 
       const lim = fiveHourLimit(s)
       if (lim === undefined) return { cap: L.meters.fiveHour, value: '—', sub: L.meters.noLimit }
       const p = Math.round(lim.percentUsed)
-      const span = resetSpan(lim.resetsAt, now, L)
+      const span = resetSpan(lim.resetsAt, now, L, fmtSpanCompact)
       return {
         cap: L.meters.fiveHour,
         value: `${p}%`,

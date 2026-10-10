@@ -6,6 +6,7 @@
 <title>Regia — a live control room for Claude Code</title>
 <meta name="description" content="Regia is a Claude Code plugin: a live, animated control room for your sessions. Agents, skills, tool calls, context and usage limits on one radar, inside the Code tab.">
 <meta name="color-scheme" content="dark">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%277%27 fill=%27%230E0F12%27/%3E%3Crect x=%277%27 y=%2715%27 width=%2718%27 height=%273%27 rx=%271.5%27 fill=%27%23F1EEE6%27/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
@@ -31,13 +32,14 @@
   html { background: var(--bg); }
   body { margin: 0; background: var(--bg); color: var(--ink-2); font: 400 15px/1.6 var(--mono); -webkit-font-smoothing: antialiased; }
   a { color: inherit; }
-  :focus-visible { outline: 2px solid var(--run); outline-offset: 3px; border-radius: 4px; }
+  :focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; border-radius: 4px; }
 
   .wrap { width: min(1120px, 100% - 2 * var(--s4)); margin-inline: auto; }
 
   .top { display: flex; align-items: center; justify-content: space-between; padding-block: var(--s5); }
   .mark { font: 600 13px var(--mono); letter-spacing: .28em; color: var(--ink); text-decoration: none; display: inline-flex; align-items: center; gap: var(--s3); }
-  .mark::before { content: ''; width: 24px; height: 2px; border-radius: 1px; background: var(--run); }
+  .mark::before { content: ''; width: 24px; height: 2px; border-radius: 1px; background: var(--ink-3); transition: width .3s var(--ease-out), background-color .2s var(--ease-out); }
+  .mark:hover::before { width: 32px; background: var(--ink); }
   .nav { display: flex; gap: var(--s5); font-size: 12px; letter-spacing: .16em; text-transform: uppercase; }
   .nav a { text-decoration: none; color: var(--ink-3); transition: color .2s var(--ease-out); }
   .nav a:hover { color: var(--ink); }
@@ -45,14 +47,14 @@
   .hero { display: grid; grid-template-columns: minmax(0, 1fr) 452px; gap: var(--s8); align-items: start; padding-block: var(--s7) var(--s9); }
   .eyebrow { margin: 0 0 var(--s4); font-size: 12px; letter-spacing: .24em; text-transform: uppercase; color: var(--ink-3); }
   h1 { margin: 0; font: 500 clamp(80px, 12vw, 148px)/.86 var(--display); color: var(--ink); letter-spacing: -.01em; }
-  .lede { margin: var(--s5) 0 0; max-width: 34ch; font-size: 18px; line-height: 1.55; color: var(--ink); }
+  .lede { margin: var(--s6) 0 0; max-width: 34ch; font-size: 18px; line-height: 1.55; color: var(--ink); }
   .lede span { color: var(--ink-2); }
   .cta { display: flex; flex-wrap: wrap; gap: var(--s3); margin-top: var(--s6); }
   .btn { display: inline-flex; align-items: center; gap: var(--s2); padding: var(--s3) var(--s5); border-radius: 999px; border: 1px solid var(--frame); background: var(--raised); color: var(--ink); text-decoration: none; font: 600 13px var(--mono); letter-spacing: .06em; transition: border-color .2s var(--ease-out), background-color .2s var(--ease-out), transform .16s var(--ease-out); }
   .btn:hover { border-color: var(--ink-3); }
   .btn:active { transform: scale(.97); }
-  .btn.primary { border-color: var(--run); color: var(--run); background: transparent; }
-  .btn.primary:hover { background: rgba(250, 178, 25, .08); }
+  .btn.primary { border-color: var(--ink); color: var(--bg); background: var(--ink); }
+  .btn.primary:hover { background: #fff; border-color: #fff; }
   .facts { list-style: none; margin: var(--s7) 0 0; padding: 0; display: grid; gap: var(--s3); }
   .facts li { display: flex; gap: var(--s3); align-items: baseline; }
   .facts i { flex: none; width: 9px; height: 9px; border-radius: 2px; transform: translateY(1px); }
@@ -73,12 +75,12 @@
   section.more, section.install { padding-block: var(--s8); border-top: 1px solid var(--frame); }
   h2 { margin: 0; font: 500 clamp(40px, 6vw, 64px)/1 var(--display); color: var(--ink); }
   .section-lede { margin: var(--s4) 0 var(--s6); max-width: 60ch; }
-  .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s4); align-items: start; }
-  .grid img { display: block; width: 100%; height: auto; }
+  .grid { columns: 2; column-gap: var(--s4); }
+  .grid img { display: block; width: 100%; height: auto; margin-bottom: var(--s4); break-inside: avoid; }
 
-  .steps { display: grid; gap: var(--s6); max-width: 760px; counter-reset: step; }
+  .steps { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--s6); max-width: 900px; counter-reset: step; }
   .step h3 { margin: 0 0 var(--s3); font: 600 12px var(--mono); letter-spacing: .2em; text-transform: uppercase; color: var(--ink); }
-  .step h3::before { counter-increment: step; content: counter(step, decimal-leading-zero) '  '; color: var(--run); }
+  .step h3::before { counter-increment: step; content: counter(step, decimal-leading-zero) '  '; color: var(--ink-3); }
   .step p { margin: 0 0 var(--s3); }
   .code { position: relative; display: flex; align-items: center; gap: var(--s3); border: 1px solid var(--frame); border-radius: 10px; background: var(--screen); padding: var(--s3) var(--s3) var(--s3) var(--s4); }
   .code code { flex: 1; min-width: 0; overflow-x: auto; white-space: nowrap; color: var(--ink); font-size: 14px; }
@@ -90,15 +92,25 @@
 
   footer { padding-block: var(--s6) var(--s8); border-top: 1px solid var(--frame); font-size: 12px; color: var(--ink-3); display: flex; justify-content: space-between; gap: var(--s4); flex-wrap: wrap; }
 
+  footer a { text-decoration-color: var(--frame); text-underline-offset: 3px; transition: color .2s var(--ease-out), text-decoration-color .2s var(--ease-out); }
+  footer a:hover { color: var(--ink); text-decoration-color: var(--ink); }
+  .lang button:active { transform: scale(.96); }
+
   @media (max-width: 960px) {
     .hero { grid-template-columns: 1fr; gap: var(--s7); padding-top: var(--s5); }
     .pane { position: static; max-width: 452px; }
-    .grid { grid-template-columns: 1fr; }
+    .grid { columns: 1; }
   }
-  @media (max-width: 560px) { .nav { gap: var(--s4); } .nav a.hide-sm { display: none; } }
+  @media (max-width: 560px) {
+    .nav { gap: var(--s4); } .nav a.hide-sm { display: none; }
+    .code { align-items: flex-start; }
+    .code code { white-space: pre-wrap; overflow-wrap: anywhere; font-size: 13px; }
+    section.more, section.install { padding-block: var(--s7); }
+  }
   @media (prefers-reduced-motion: reduce) {
     .live::before { animation: none; }
-    .btn, .copy, .lang button, .nav a { transition: none; }
+    .btn, .copy, .lang button, .nav a, .mark::before, footer a { transition: none; }
+    .btn:active, .copy:active, .lang button:active { transform: none; }
   }
 </style>
 </head>
@@ -128,9 +140,9 @@
           <li><i style="background:#fab219"></i><span>Subagents orbit the core as satellites, beaming while they work.</span></li>
           <li><i style="background:#3987e5"></i><span>Every tool call is born on the needle and sweeps around in real time.</span></li>
           <li><i style="background:#d95926"></i><span>Context fill and your 5-hour limit, always in view.</span></li>
-          <li><i style="background:#0ca30c"></i><span>English or Italian, motion that respects reduced-motion settings.</span></li>
+          <li><i style="background:#0ca30c"></i><span>English or Italian, and it honors reduced motion.</span></li>
         </ul>
-        <p class="note">The panel on the right is the plugin's real drawing code, running on a simulated session.</p>
+        <p class="note">The panel is the plugin's real drawing code, running on a simulated session.</p>
       </div>
 
       <div class="pane" aria-label="Live demo of the Regia panel">
@@ -147,7 +159,7 @@
 
     <section class="more" id="monitors">
       <h2>Every monitor, live</h2>
-      <p class="section-lede">Below the radar the panel keeps going: context breakdown and usage limits, activity lanes that scroll with time, the skills in play, the tools you lean on most and every file touched.</p>
+      <p class="section-lede">Below the radar the panel keeps going: context and usage limits, activity lanes that scroll with time, skills in play, your most-used tools and every file touched.</p>
       <div class="grid" id="grid"></div>
     </section>
 

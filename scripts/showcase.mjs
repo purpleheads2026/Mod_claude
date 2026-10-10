@@ -15,7 +15,7 @@
 // si riaccende proprio quando ripassa dalla lancetta. Le chiamate in corso dello
 // scenario vengono chiuse, perché una testa "in corso" ferma non tornerebbe in loop.
 
-import { copyFileSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs'
+import { mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs'
 import { stripTypeScriptTypes } from 'node:module'
 import { dirname, join } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
@@ -32,7 +32,24 @@ for (const file of readdirSync(hooks).filter(f => f.endsWith('.ts'))) {
   const out = stripTypeScriptTypes(readFileSync(join(hooks, file), 'utf8'))
   writeFileSync(join(lib, file.replace(/\.ts$/, '.mjs')), out.replace(/from '\.\/([\w-]+)'/g, "from './$1.mjs'"))
 }
-copyFileSync(join(root, 'regia', 'preview', 'scenario.mjs'), join(lib, 'scenario.mjs'))
+// Lo scenario del plugin ha testi in italiano (è nato per l'anteprima di sviluppo): la
+// vetrina è in inglese, quindi nella copia li traduciamo. regia/ resta intatto.
+const EN = {
+  'turno precedente': 'previous turn',
+  'vorrei modificare l’interfaccia di code: una vista grafica per tenere sotto controllo agenti e skill': 'I want a graphic view of agents and skills',
+  'Controllo rapido (annullato)': 'Quick check (cancelled)',
+  'Mappa gli eventi dell’API dei mod e i loro input': 'Map the mod API events and their inputs',
+  'Screenshot del pannello, critica e correzioni': 'Screenshot the panel, critique, fix',
+  'Confronta il rendering SVG su desktop e terminale': 'Compare SVG rendering on desktop and terminal',
+  'Rivedi la UI del pannello': 'Review the panel UI',
+  'Cerca dove nasce il flicker degli iframe': 'Find where the iframe flicker starts',
+  'Critica il radar a 380 px': 'Critique the radar at 380 px',
+  'Misura la larghezza reale del pannello': 'Measure the real panel width',
+  'Controllo rapido dei metadati': 'Quick metadata check',
+}
+let scenario = readFileSync(join(root, 'regia', 'preview', 'scenario.mjs'), 'utf8')
+for (const [it, en] of Object.entries(EN)) scenario = scenario.replaceAll(it, en)
+writeFileSync(join(lib, 'scenario.mjs'), scenario)
 
 const load = name => import(pathToFileURL(join(lib, name)).href)
 const M = await load('model.mjs')
@@ -99,7 +116,7 @@ const dialView = w => {
         text(76, 321 + i * 28, label, `font:400 14px ${MONO};fill:${C.ink2}`),
       )
       .join('') +
-    text(56, 404, 'DESKTOP CODE TAB  ·  ENGLISH / ITALIANO', `font:400 10px ${MONO};letter-spacing:.2em;fill:${C.ink3}`) +
+    text(56, 404, 'DESKTOP CODE TAB  ·  ENGLISH / ITALIAN', `font:400 10px ${MONO};letter-spacing:.2em;fill:${C.ink3}`) +
     nest(R.radarSvg(s, NOW, 520, L), W - view[2] - 20, (H - view[3]) / 2, view)
   writeFileSync(join(media, 'hero.svg'), svgDoc(W, H, 'Regia: a live control room for Claude Code', body))
 }
@@ -120,7 +137,7 @@ const dialView = w => {
   const H = Math.max(hRadar + gap + hSkills, hAgents + gap + hMeters)
   const body =
     nest(radar, 0, 0) +
-    nest(skills, 0, hRadar + gap) +
+    nest(skills, 0, H - hSkills) +
     nest(agents, w + gap, 0) +
     nest(meters, w + gap, hAgents + gap)
   writeFileSync(join(media, 'wall.svg'), svgDoc(W, H, 'The Regia panel: radar, agents, instruments and skills', body))
@@ -156,7 +173,7 @@ const dialView = w => {
     { side: 'right', y: 196, at: g.satellite(satIndex), title: 'SATELLITES', lines: ['Subagents in fixed orbits,', 'beaming while they work.'] },
     { side: 'right', y: 330, at: g.at(g.rGauge, 150), title: 'CONTEXT RING', lines: ['How full the context is,', 'grown from the last read.'] },
     { side: 'left', y: 150, at: g.at(g.laneR(0), 300), title: 'TOOL TRACKS', lines: ['The last 60 s of calls,', 'one track per agent.'] },
-    { side: 'left', y: 300, at: [g.cx - g.rCore * 0.55, g.cy + 4], title: 'THE CORE', lines: ['The main session: status,', 'turn timer, context used.'] },
+    { side: 'left', y: 300, at: [g.cx - g.rCore * 0.9, g.cy + 8], title: 'THE CORE', lines: ['The main session: status,', 'turn timer, context used.'] },
   ]
   let marks = ''
   for (const c of callouts) {

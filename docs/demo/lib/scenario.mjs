@@ -6,13 +6,13 @@ export const buildScenario = (M, NOW) => {
   const ago = sec => NOW - sec * 1000
   let s = M.emptySnapshot(ago(18 * 60))
   for (let i = 0; i < 6; i++) {
-    s = M.turnStarted(s, ago(17 * 60 - i * 120), 'turno precedente')
+    s = M.turnStarted(s, ago(17 * 60 - i * 120), 'previous turn')
     s = M.turnCompleted(s, 70_000, { model: 'claude-opus-5-5', input_tokens: 9000, output_tokens: 6200, cache_read_input_tokens: 410_000 })
   }
   for (const k of ['plugin-authoring', 'dataviz', 'design-system-guardrails', 'plugin-authoring', 'artifact-design']) {
     s = M.skillLoaded(s, k, ago(400))
   }
-  s = M.turnStarted(s, ago(42), 'vorrei modificare l’interfaccia di code: una vista grafica per tenere sotto controllo agenti e skill')
+  s = M.turnStarted(s, ago(42), 'I want a graphic view of agents and skills')
 
   const call = (id, tool, input, start, dur, agentId, isError = false) => {
     const c = M.makeCall(id, tool, input, ago(start), agentId)
@@ -24,10 +24,10 @@ export const buildScenario = (M, NOW) => {
     s = M.agentStarted(s, key, agentId, model)
   }
 
-  spawn('t4', 'a4', 'seo-technical', 'Controllo rapido (annullato)', 180, 'sonnet')
-  spawn('t1', 'a1', 'Explore', 'Mappa gli eventi dell’API dei mod e i loro input', 120, 'haiku')
-  spawn('t2', 'a2', 'design-reviewer', 'Screenshot del pannello, critica e correzioni', 50, 'opus')
-  spawn('t3', 'a3', 'general-purpose', 'Confronta il rendering SVG su desktop e terminale', 34, 'sonnet')
+  spawn('t4', 'a4', 'seo-technical', 'Quick check (cancelled)', 180, 'sonnet')
+  spawn('t1', 'a1', 'Explore', 'Map the mod API events and their inputs', 120, 'haiku')
+  spawn('t2', 'a2', 'design-reviewer', 'Screenshot the panel, critique, fix', 50, 'opus')
+  spawn('t3', 'a3', 'general-purpose', 'Compare SVG rendering on desktop and terminal', 34, 'sonnet')
 
   const events = [
     ['m1', 'Read', { file_path: '/Mod_claude/overview.md' }, 290, 0.4],
@@ -56,7 +56,7 @@ export const buildScenario = (M, NOW) => {
     ['x12', 'mcp__Claude_Browser__computer', { action: 'screenshot' }, 8, 1.6, 'a2'],
     ['x13', 'Read', { file_path: '/regia/hooks/svg.ts' }, 4, null, 'a3'],
     ['x14', 'Bash', { command: 'node preview/build.mjs' }, 3, null, 'a2'],
-    ['m12', 'Agent', { description: 'Rivedi la UI del pannello' }, 2, null],
+    ['m12', 'Agent', { description: 'Review the panel UI' }, 2, null],
   ]
   for (const [id, tool, input, start, dur, agentId, err] of events) call(id, tool, input, start, dur, agentId, err)
 
@@ -105,10 +105,10 @@ const TOOLS = [
   ['Skill', () => ({ skill: 'animate' }), 0.3, 0.6],
 ]
 const AGENTS = [
-  ['Explore', 'Cerca dove nasce il flicker degli iframe'],
-  ['design-reviewer', 'Critica il radar a 380 px'],
-  ['general-purpose', 'Misura la larghezza reale del pannello'],
-  ['seo-technical', 'Controllo rapido dei metadati'],
+  ['Explore', 'Find where the iframe flicker starts'],
+  ['design-reviewer', 'Critique the radar at 380 px'],
+  ['general-purpose', 'Measure the real panel width'],
+  ['seo-technical', 'Quick metadata check'],
 ]
 const pick = list => list[Math.floor(Math.random() * list.length)]
 const rand = (a, b) => a + Math.random() * (b - a)
