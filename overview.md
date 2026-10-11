@@ -22,7 +22,11 @@ Mod_claude/
 ├── docs/                            GitHub Pages (pubblicata da main /docs)
 │   ├── index.html                   landing in inglese con demo live EN/IT (scritta a mano)
 │   ├── demo/lib/*.mjs               generata: hooks convertiti + scenario, usati dalla demo
-│   └── media/{hero,wall,anatomy}.svg  generate: immagini animate del README
+│   └── media/                       generate da scripts/showcase.mjs:
+│       ├── {hero,wall,anatomy}.svg  immagini animate del README
+│       ├── og.png (+.svg)           anteprima social del sito, 1200×630 (tag og:/twitter: in index.html)
+│       └── social-github.png (+.svg)  anteprima della repo, 1280×640: si carica a mano in
+│                                      GitHub → Settings → General → Social preview
 ├── .claude-plugin/marketplace.json  rende la repo un marketplace (plugin: regia → ./regia)
 ├── .claude/launch.json              server statico per l'anteprima (porta 4317)
 ├── .gitignore                       esclude tipi generati dall'engine e output anteprima

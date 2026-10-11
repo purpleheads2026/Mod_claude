@@ -7,6 +7,8 @@
 //   media/hero.svg     testata animata del README: titolo + radar
 //   media/wall.svg     la parete dei monitor (radar, agenti, strumentazione, skill)
 //   media/anatomy.svg  il radar con le didascalie delle sue parti
+//   media/og.png       anteprima social del sito, 1200×630 (+ og.svg sorgente)
+//   media/social-github.png  anteprima della repo GitHub, 1280×640 (+ .svg)
 // docs/index.html (la pagina di GitHub Pages con la demo live) è scritta a mano e
 // importa i moduli da demo/lib.
 //
@@ -15,7 +17,8 @@
 // si riaccende proprio quando ripassa dalla lancetta. Le chiamate in corso dello
 // scenario vengono chiuse, perché una testa "in corso" ferma non tornerebbe in loop.
 
-import { mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs'
+import { execFileSync } from 'node:child_process'
+import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs'
 import { stripTypeScriptTypes } from 'node:module'
 import { dirname, join } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
@@ -75,11 +78,11 @@ const sizeOf = svg => {
   if (m === null) throw new Error('monitor senza intestazione attesa')
   return [Number(m[1]), Number(m[2])]
 }
-/** Un monitor dentro un altro SVG: stessa sorgente, nuova posizione e (volendo) un ritaglio. */
-const nest = (svg, x, y, view) => {
+/** Un monitor dentro un altro SVG: stessa sorgente, nuova posizione, (volendo) un ritaglio e una scala. */
+const nest = (svg, x, y, view, scale = 1) => {
   const [w, h] = sizeOf(svg)
   const [vx, vy, vw, vh] = view ?? [0, 0, w, h]
-  return svg.replace(HEADER, `<svg x="${x}" y="${y}" width="${vw}" height="${vh}" viewBox="${vx} ${vy} ${vw} ${vh}" overflow="hidden">`)
+  return svg.replace(HEADER, `<svg x="${x}" y="${y}" width="${vw * scale}" height="${vh * scale}" viewBox="${vx} ${vy} ${vw} ${vh}" overflow="hidden">`)
 }
 const text = (x, y, value, style, anchor = 'start') =>
   `<text x="${x}" y="${y}" text-anchor="${anchor}" style="${style}">${S.esc(value)}</text>`
@@ -196,4 +199,46 @@ const dialView = w => {
   writeFileSync(join(media, 'anatomy.svg'), svgDoc(W, H, 'Anatomy of the Regia radar', body))
 }
 
-console.log('docs/ aggiornata: demo/lib/*.mjs, media/{hero,wall,anatomy}.svg (docs/index.html è scritta a mano)')
+// ── og.png / social-github.png ───────────────────────────────────────────────
+// Anteprima per i link condivisi: 1200×630 per il sito (Open Graph, X, WhatsApp,
+// LinkedIn, Slack), 1280×640 per la repo GitHub (Settings → Social preview, a mano).
+// Stesso disegno: a sinistra il titolo, a destra il quadrante ingrandito. Al centro
+// niente di essenziale sotto i 40 px dai bordi, dove alcune app ritagliano.
+const socialCard = (W, H) => {
+  const view = dialView(520)
+  const scale = (H - 70) / view[3]
+  const dw = view[2] * scale
+  const dh = view[3] * scale
+  const left = 80
+  const body =
+    `<rect width="${W}" height="${H}" fill="${C.screen}"/>` +
+    `<rect x="${left}" y="138" width="40" height="3" rx="1.5" fill="${C.run}"/>` +
+    text(left, 182, 'CLAUDE CODE PLUGIN', `font:600 17px ${MONO};letter-spacing:.24em;fill:${C.ink3}`) +
+    text(left - 8, 340, 'Regia', `font:400 172px ${NUM};fill:${C.ink}`) +
+    text(left, 404, 'A live control room for', `font:400 28px ${MONO};fill:${C.ink}`) +
+    text(left, 446, 'your Claude Code sessions.', `font:400 28px ${MONO};fill:${C.ink2}`) +
+    text(left, H - 66, 'purpleheads2026.github.io/Mod_claude', `font:400 18px ${MONO};letter-spacing:.04em;fill:${C.ink3}`) +
+    nest(R.radarSvg(s, NOW, 520, L), W - dw - 40, (H - dh) / 2, view, scale)
+  return svgDoc(W, H, 'Regia: a live control room for Claude Code', body)
+}
+
+const CHROME = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
+/** Un SVG della vetrina in PNG, con Chrome headless (i font sono quelli del sistema). */
+const toPng = (svgName, pngName, W, H) => {
+  if (!existsSync(CHROME)) {
+    console.log(`Chrome non trovato: ${pngName} non rigenerato`)
+    return
+  }
+  execFileSync(CHROME, [
+    '--headless=new', '--disable-gpu', '--hide-scrollbars', '--force-device-scale-factor=1',
+    `--window-size=${W},${H}`, `--screenshot=${join(media, pngName)}`,
+    pathToFileURL(join(media, svgName)).href,
+  ], { stdio: 'ignore' })
+}
+
+for (const [name, W, H] of [['og', 1200, 630], ['social-github', 1280, 640]]) {
+  writeFileSync(join(media, `${name}.svg`), socialCard(W, H))
+  toPng(`${name}.svg`, `${name}.png`, W, H)
+}
+
+console.log('docs/ aggiornata: demo/lib/*.mjs, media/{hero,wall,anatomy,og,social-github}.* (docs/index.html è scritta a mano)')
