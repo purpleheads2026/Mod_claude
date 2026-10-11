@@ -334,12 +334,52 @@ export const turnCompleted = (
   },
 })
 
-export const skillLoaded = (s: RegiaSnapshot, name: string, at: number): RegiaSnapshot => {
+/**
+ * Una skill caricata. La stessa skill arriva da più segnali (la riga della skill nella
+ * conversazione, lo strumento Skill, l'evento skill.prompt quando l'engine lo solleva):
+ * entro SKILL_DEDUPE_MS dall'ultima volta è lo stesso caricamento e non si conta.
+ */
+export const SKILL_DEDUPE_MS = 3000
+
+/** "plugin:nome" (strumento Skill, skill.prompt) e "nome" (cartella della skill) sono la stessa. */
+const skillKey = (raw: string): string => raw.slice(raw.lastIndexOf(':') + 1).trim()
+
+export const skillLoaded = (s: RegiaSnapshot, raw: string, at: number): RegiaSnapshot => {
+  const name = skillKey(raw)
+  if (name === '') return s
   const found = s.skills.find(k => k.name === name)
+  if (found !== undefined && Math.abs(at - found.lastAt) < SKILL_DEDUPE_MS) return s
   const next = found
     ? { ...found, count: found.count + 1, lastAt: at, turn: s.turn.count }
     : { name, count: 1, firstAt: at, lastAt: at, turn: s.turn.count }
   return { ...s, skills: [next, ...s.skills.filter(k => k.name !== name)] }
+}
+
+const SKILL_ROW = /Base directory for this skill:\s*([^\n]+)/
+
+/**
+ * Il nome della skill da una riga della conversazione: ogni skill caricata (comando
+ * slash, strumento Skill, preload) entra con "Base directory for this skill: <cartella>",
+ * e il nome è l'ultima parte della cartella.
+ */
+export const skillFromText = (text: string): string | undefined => {
+  const dir = SKILL_ROW.exec(text)?.[1]?.trim().replace(/\/+$/, '')
+  const name = dir?.split('/').pop()
+  return name === undefined || name === '' ? undefined : name
+}
+
+/**
+ * Le skill già presenti nella conversazione quando il plugin si carica (dopo un
+ * /reload-plugins o all'apertura di una sessione ripresa). Aggiunge solo quelle che lo
+ * snapshot non ha, con turn -1: sono storia, non "attive in questo turno".
+ */
+export const skillsBackfilled = (s: RegiaSnapshot, names: readonly string[], at: number): RegiaSnapshot => {
+  const counts = new Map<string, number>()
+  for (const name of names.map(skillKey).filter(n => n !== '')) counts.set(name, (counts.get(name) ?? 0) + 1)
+  const missing = [...counts.entries()].filter(([name]) => !s.skills.some(k => k.name === name))
+  if (missing.length === 0) return s
+  const added = missing.reverse().map(([name, count]) => ({ name, count, firstAt: at, lastAt: at, turn: -1 }))
+  return { ...s, skills: [...s.skills, ...added] }
 }
 
 export type MeasureLike = {

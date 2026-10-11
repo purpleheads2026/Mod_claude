@@ -99,11 +99,13 @@ test('un subagente nasce, lavora e finisce', async ($, on) => {
 })
 
 test('le skill si contano a ogni caricamento', async ($, on) => {
-  mock.clock(on)
+  const clock = mock.clock(on)
   on('skill.prompt', ($, e) => ({ text: e.text }))
 
   await $.skill.prompt({ skill: 'brand', text: '…' })
+  await clock.advance(5000)
   await $.skill.prompt({ skill: 'dataviz', text: '…' })
+  await clock.advance(5000)
   await $.skill.prompt({ skill: 'brand', text: '…' })
 
   const skills = await monitor($, 'skills')
@@ -123,4 +125,33 @@ test('con language: it il pannello parla italiano', { options: { language: 'it' 
   expect(radar).toContain('1 strumento')
   expect((await ui.find({ key: 'reset' }))?.props.label).toBe('Azzera statistiche')
   await ui.unmount()
+})
+
+/** La riga che ogni skill aggiunge alla conversazione quando si carica. */
+const skillRow = (dir: string) =>
+  ({
+    message: { type: 'user', isMeta: true, content: [{ type: 'text', text: `Base directory for this skill: ${dir}\n\n# Skill` }] },
+    door: 'command',
+    origin: { kind: 'engine' },
+    uuid: `row-${dir}`,
+  }) as never
+
+test('una skill avviata da comando slash compare tra le skill', async ($, on) => {
+  mock.clock(on)
+  await $.session.append(skillRow('/Users/x/.claude/skills/instagram-marketing'))
+
+  const skills = await monitor($, 'skills')
+  expect(skills).toContain('>instagram-marketing<')
+  expect(skills).toContain('1 LOADED · 1 USE')
+})
+
+test('strumento Skill e riga della skill contano un caricamento solo', async ($, on) => {
+  mock.clock(on)
+  on('tool.call', () => ({ result: 'ok' as never }))
+  await $.tool.call({ tool: 'Skill', skill: 'anthropic-skills:docx' } as never)
+  await $.session.append(skillRow('/plugins/anthropic-skills/skills/docx'))
+
+  const skills = await monitor($, 'skills')
+  expect(skills).toContain('>docx<')
+  expect(skills).toContain('1 LOADED · 1 USE')
 })

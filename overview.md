@@ -96,6 +96,20 @@ sta in `pluginConfigs` delle impostazioni (`regia@mod-claude` per il plugin inst
 Le notifiche interne nel prompt sono salvate come chiave (`↳agent-message`) e tradotte al
 disegno.
 
+## Rilevamento delle skill
+
+L'evento `skill.prompt` nelle sessioni vere non sempre arriva (verificato il 2026-10-11:
+una skill avviata con `/instagram-marketing` in Bolo, e `animate` qui, non comparivano).
+Le skill si contano quindi da tre segnali, deduplicati in `model.skillLoaded` (stesso nome
+entro 3 s = stesso caricamento; `plugin:nome` e `nome` coincidono):
+1. `session.append`: la riga "Base directory for this skill: <cartella>" che ogni skill
+   aggiunge alla conversazione (comando slash, strumento Skill, preload). È il segnale
+   principale; il nome è l'ultima parte della cartella (`model.skillFromText`).
+2. `tool.call` dello strumento `Skill`.
+3. `skill.prompt`, quando c'è.
+In `session.start` le skill già presenti nella cronologia (`$.session.messages()`) vengono
+recuperate (`model.skillsBackfilled`): dopo un `/reload-plugins` compaiono subito.
+
 ## Comandi
 
 - `/regia` — apre (o riporta in primo piano) il pannello. Si apre anche da solo a

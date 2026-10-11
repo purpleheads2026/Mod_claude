@@ -35,7 +35,9 @@ import {
   makeCall,
   metersMeasured,
   runningAgents,
+  skillFromText,
   skillLoaded,
+  skillsBackfilled,
   slicesMeasured,
   toolName,
   turnCompleted,
@@ -119,6 +121,15 @@ const tick = async ($: $): Promise<void> => {
   }
 }
 
+/** Il testo di una riga della conversazione: solo i suoi blocchi di testo, uniti. */
+const textOfBlocks = (blocks: readonly unknown[]): string =>
+  blocks
+    .map(b => {
+      const block = b as { type?: unknown; text?: unknown }
+      return block.type === 'text' && typeof block.text === 'string' ? block.text : ''
+    })
+    .join('\n')
+
 export const register: Register = (on, options) => {
   L = STRINGS[langOf(options.language)]
   // ── Sessione ───────────────────────────────────────────────────────────────
@@ -137,6 +148,24 @@ export const register: Register = (on, options) => {
       void tick($)
     })
     void $.ui.open({ id: PANE, title: L.pane.title })
+    // Le skill caricate prima che il plugin partisse (un /reload-plugins a metà sessione,
+    // una sessione ripresa). Facoltativo: se la cronologia non si legge, si va avanti.
+    try {
+      const history = await $.session.messages()
+      const rows = history
+        .filter(m => m.role === 'user')
+        .map(m => skillFromText(m.text))
+        .filter((x): x is string => x !== undefined)
+      // Le righe della skill bastano; lo strumento Skill solo se la cronologia non le ha.
+      const loaded = rows.length > 0
+        ? rows
+        : history.flatMap(m => m.toolUses)
+          .filter(u => u.tool === 'Skill' && typeof u.input.skill === 'string')
+          .map(u => String(u.input.skill))
+      await change($, s => skillsBackfilled(s, loaded, usage.startedAt))
+    } catch {
+      // nessuna cronologia: le skill compariranno dalla prossima che si carica
+    }
     return next(e)
   })
 
@@ -184,6 +213,8 @@ export const register: Register = (on, options) => {
     const id = e.tool_use_id ?? `${e.tool}-${t0}`
     const call = makeCall(id, e.tool, input, t0, e.agentId)
     await change($, s => callStarted(s, call, filePathOf(input)))
+    const skill = e.tool === 'Skill' ? input.skill : undefined
+    if (typeof skill === 'string') await change($, s => skillLoaded(s, skill, t0))
 
     const ran = await next(e)
 
@@ -222,6 +253,22 @@ export const register: Register = (on, options) => {
   })
 
   // ── Skill ──────────────────────────────────────────────────────────────────
+  // Tre segnali, deduplicati in model.skillLoaded: la riga "Base directory for this
+  // skill" che ogni skill aggiunge alla conversazione (il più affidabile: c'è per i
+  // comandi slash, lo strumento Skill e i preload), lo strumento Skill in tool.call, e
+  // skill.prompt, che nelle sessioni vere non sempre arriva.
+
+  on('session.append', async ($, e, next) => {
+    const stored = await next(e)
+    if (e.message.type === 'user') {
+      const name = skillFromText(textOfBlocks(e.message.content))
+      if (name !== undefined) {
+        const t = await $.clock.now()
+        await change($, s => skillLoaded(s, name, t))
+      }
+    }
+    return stored
+  })
 
   on('skill.prompt', async ($, e, next) => {
     const t = await $.clock.now()
