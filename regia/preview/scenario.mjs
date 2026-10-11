@@ -9,9 +9,10 @@ export const buildScenario = (M, NOW) => {
     s = M.turnStarted(s, ago(17 * 60 - i * 120), 'turno precedente')
     s = M.turnCompleted(s, 70_000, { model: 'claude-opus-5-5', input_tokens: 9000, output_tokens: 6200, cache_read_input_tokens: 410_000 })
   }
-  for (const k of ['plugin-authoring', 'dataviz', 'design-system-guardrails', 'plugin-authoring', 'artifact-design']) {
-    s = M.skillLoaded(s, k, ago(400))
-  }
+  // Caricamenti distanziati: la stessa skill entro 3 s conta come un caricamento solo.
+  ;['plugin-authoring', 'dataviz', 'design-system-guardrails', 'plugin-authoring', 'artifact-design'].forEach((k, i) => {
+    s = M.skillLoaded(s, k, ago(400 - i * 20))
+  })
   s = M.turnStarted(s, ago(42), 'vorrei modificare l’interfaccia di code: una vista grafica per tenere sotto controllo agenti e skill')
 
   const call = (id, tool, input, start, dur, agentId, isError = false) => {
