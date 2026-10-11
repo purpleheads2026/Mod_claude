@@ -17,6 +17,7 @@ strumenti usati, contesto/costo/rate limit — dentro un pannello del Code tab.
 Mod_claude/
 ├── overview.md                      questa mappa
 ├── README.md                        vetrina in inglese: hero animato, monitor, anatomia, install
+├── LICENSE                          MIT (dichiarata anche in regia/.claude-plugin/plugin.json)
 ├── design-tokens.json               token della pagina Pages e delle immagini (base: regia/design-tokens.json)
 ├── docs/                            GitHub Pages (pubblicata da main /docs)
 │   ├── index.html                   landing in inglese con demo live EN/IT (scritta a mano)

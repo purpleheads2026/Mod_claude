@@ -161,3 +161,7 @@ Then serve `regia/preview/` with any static server and open `live.html?w=400` (a
 ```bash
 node scripts/showcase.mjs
 ```
+
+## License
+
+[MIT](LICENSE): use it, fork it, change it, ship it. Keep the copyright notice.

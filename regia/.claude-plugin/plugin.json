@@ -3,6 +3,9 @@
   "version": "0.3.1",
   "description": "A graphic control room for Claude Code: a live radar of agents, skills and tools, with context and usage limits, in motion.",
   "author": { "name": "Samuel" },
+  "license": "MIT",
+  "homepage": "https://purpleheads2026.github.io/Mod_claude/",
+  "repository": "https://github.com/purpleheads2026/Mod_claude",
   "types": "./types/index.d.ts",
   "userConfig": {
     "language": {
