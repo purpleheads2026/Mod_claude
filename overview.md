@@ -4,11 +4,21 @@ Mod (plugin di function hooks) per l'interfaccia di Claude Code. Il primo è **R
 una sala di controllo grafica della sessione — agenti al lavoro, skill caricate,
 strumenti usati, contesto/costo/rate limit — dentro un pannello del Code tab.
 
+## Fronti
+
+| Fronte | Percorsi | Casa | Avvio | Sessione |
+|---|---|---|---|---|
+| Mod Regia | `.` | `.` | — | Mod_claude · Regia |
+
+Fronte unico: la vetrina (`docs/`, `README.md`) è generata dai sorgenti del plugin ed esce
+sempre con lui. Regole del fronte in `CLAUDE.md`, stato del lavoro in `STATO.md`.
+
 ## Dove vive il codice
 
 | Copia | Percorso | Ruolo |
 | --- | --- | --- |
-| **Installata (fonte)** | `regia/` (questa repo) | Plugin `regia@mod-claude`, scope utente, nel profilo di configurazione (`$CLAUDE_CONFIG_DIR`, di default `~/.claude`). Il marketplace è questa cartella e l'engine legge il plugin **direttamente da qui** (`claude plugin list` → `Read from:`): si modifica qui, poi `/reload-plugins` nelle sessioni aperte. Le sessioni nuove lo caricano da sole. |
+| **Installata (fonte)** | `regia/` (questa repo) | Plugin `regia@mod-claude`, scope utente, nel profilo di sviluppo (`$CLAUDE_CONFIG_DIR`; per Samuel il profilo purpleheads). Il marketplace è questa cartella e l'engine legge il plugin **direttamente da qui** (`claude plugin list` → `Read from:`): si modifica qui, poi `/reload-plugins` nelle sessioni aperte. Le sessioni nuove lo caricano da sole. |
+| Installata da GitHub | `~/.claude/plugins/cache/mod-claude/regia/<versione>/` | Profilo Aldeia (`~/.claude`, app Claude), dal 2026-10-12: marketplace `purpleheads2026/Mod_claude`. Vede solo ciò che è pushato; si aggiorna con `claude plugin update regia@mod-claude` lanciato con il binario dell'app Claude e senza `CLAUDE_CONFIG_DIR`, poi `/reload-plugins`. |
 | Sviluppo storico | `$CLAUDE_CONFIG_DIR/dev-mods/<session-id>/regia/` | Copia con hot reload della sola sessione in cui è nato il mod. In quella sessione non lanciare `/reload-plugins`: due copie con lo stesso nome scriverebbero lo stesso stato e conterebbero tutto due volte. `scripts/sync.sh` la riporta nella repo. |
 
 ## Struttura della repo
@@ -16,6 +26,8 @@ strumenti usati, contesto/costo/rate limit — dentro un pannello del Code tab.
 ```
 Mod_claude/
 ├── overview.md                      questa mappa
+├── CLAUDE.md                        regole del fronte unico (comandi, confini, distribuzione)
+├── STATO.md                         dove siamo, prossimi passi, decisioni
 ├── README.md                        vetrina in inglese: hero animato, monitor, anatomia, install
 ├── LICENSE                          MIT (dichiarata anche in regia/.claude-plugin/plugin.json)
 ├── design-tokens.json               token della pagina Pages e delle immagini (base: regia/design-tokens.json)
