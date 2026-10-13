@@ -17,7 +17,7 @@ sempre con lui. Regole del fronte in `CLAUDE.md`, stato del lavoro in `STATO.md`
 
 | Copia | Percorso | Ruolo |
 | --- | --- | --- |
-| **Installata (fonte)** | `regia/` (questa repo) | Plugin `regia@mod-claude`, scope utente, nel profilo di sviluppo (`$CLAUDE_CONFIG_DIR`; per Samuel il profilo purpleheads). Il marketplace è questa cartella e l'engine legge il plugin **direttamente da qui** (`claude plugin list` → `Read from:`): si modifica qui, poi `/reload-plugins` nelle sessioni aperte. Le sessioni nuove lo caricano da sole. |
+| **Installata dalla repo** | `$CLAUDE_CONFIG_DIR/plugins/cache/mod-claude/regia/<versione>/` | Plugin `regia@mod-claude` nel profilo di sviluppo (`$CLAUDE_CONFIG_DIR`; per Samuel il profilo purpleheads). Il marketplace è questa cartella, ma l'engine carica la **copia in cache** fatta all'installazione, non `regia/` (`claude plugin list` mostra `Read from: …/regia`, ed è fuorviante: verificato il 2026-10-13, le sessioni giravano ancora la 0.2.0). Dopo ogni modifica, con la `version` alzata: `claude plugin update regia@mod-claude` (binario del desktop, stesso `CLAUDE_CONFIG_DIR`), poi `/reload-plugins` o una sessione nuova. Il profilo purpleheads ha anche un'installazione con scope project sulla cartella home (nata leggendo `~/.claude/settings.json` come impostazioni di progetto della home): si aggiorna con `--scope project` lanciato da `~`. |
 | Installata da GitHub | `~/.claude/plugins/cache/mod-claude/regia/<versione>/` | Profilo Aldeia (`~/.claude`, app Claude), dal 2026-10-12: marketplace `purpleheads2026/Mod_claude`. Vede solo ciò che è pushato; si aggiorna con `claude plugin update regia@mod-claude` lanciato con il binario dell'app Claude e senza `CLAUDE_CONFIG_DIR`, poi `/reload-plugins`. |
 | Sviluppo storico | `$CLAUDE_CONFIG_DIR/dev-mods/<session-id>/regia/` | Copia con hot reload della sola sessione in cui è nato il mod. In quella sessione non lanciare `/reload-plugins`: due copie con lo stesso nome scriverebbero lo stesso stato e conterebbero tutto due volte. `scripts/sync.sh` la riporta nella repo. |
 
@@ -164,7 +164,7 @@ Vetrina GitHub: `node scripts/showcase.mjs` rigenera immagini del README e modul
 configurazione `regia-docs` in `.claude/launch.json` (porta 4318).
 
 Aggiornare: modificare `regia/`, alzare `version` in `regia/.claude-plugin/plugin.json`,
-poi `/reload-plugins` in ogni sessione aperta. Disinstallare: `"$CC" plugin uninstall regia@mod-claude`.
+`"$CC" plugin update regia@mod-claude` (per ogni scope installato), poi `/reload-plugins` in ogni sessione aperta. Disinstallare: `"$CC" plugin uninstall regia@mod-claude`.
 GitHub: [purpleheads2026/Mod_claude](https://github.com/purpleheads2026/Mod_claude) (pubblica dal 2026-10-10, branch `main`).
 Installare da lì su un'altra macchina, da terminale:
 `/plugin install regia --marketplace purpleheads2026/Mod_claude`.

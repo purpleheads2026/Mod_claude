@@ -27,9 +27,11 @@
   mano. `docs/index.html` è scritto a mano.
 - Una modifica a `regia/hooks/` va con: `version` alzata in `regia/.claude-plugin/plugin.json`,
   test verdi, `node scripts/showcase.mjs`, un commit solo per plugin e vetrina.
-- Due profili leggono il plugin da posti diversi: purpleheads dalla cartella `regia/`
-  (`/reload-plugins`), Aldeia dalla repo GitHub (serve il push, poi
-  `claude plugin update regia@mod-claude` con il binario e il profilo di Aldeia).
+- Le sessioni non leggono `regia/`: caricano una copia in cache, anche se `claude plugin list`
+  dice `Read from: …/regia`. Dopo ogni release va aggiornata in ogni profilo con
+  `claude plugin update regia@mod-claude` (binario del desktop di quel profilo), poi
+  `/reload-plugins`. Purpleheads prende la versione dalla cartella (scope user e project sulla
+  home), Aldeia da GitHub (serve prima il push).
 - Render deterministico e regole del motion SVG: `overview.md`, "Come si collegano" punto 5 e
   "Regole da ricordare". Non derogare: il bug dello scroll infinito nasce da lì.
 - Tutti i testi del pannello stanno in `regia/hooks/i18n.ts` (en default, it). Vetrina in inglese.
