@@ -26,18 +26,21 @@ Aggiornato: 2026-10-19 · Sessione: Mod_claude · Regia
   composizione su una colonna se i nomi non entrano; reset dei limiti mai sotto la percentuale.
   `/regia` dice quando il pannello non è sullo schermo e perché. Test 10/10 su 2.1.295 e 2.1.301
   (design-reviewer: nessun troncamento da 250 px in su). Aggiornata nel profilo purpleheads
-  (scope user e project); Aldeia la riceve dopo il push.
+  (scope user e project). Pushata su GitHub e aggiornata nel profilo Aldeia (scope user).
 
 ## Prossimi passi
-0. `/reload-plugins` (o sessione nuova) in VS Code e nel desktop: deve comparire la 0.3.3 con la
-   strumentazione a righe nel pannello stretto. Push su GitHub, poi `claude plugin update
-   regia@mod-claude` nel profilo Aldeia.
+0. `/reload-plugins` (o sessione nuova) in VS Code, nel desktop purpleheads e nell'app Aldeia:
+   deve comparire la 0.3.3 con la strumentazione a righe nel pannello stretto.
 0b. A 300 px: in "FILE TOCCATI" titolo e contatore quasi si toccano; in "AGENTI" il nome si
    tronca accanto allo stato (forse voluto). Da decidere.
 1. In ogni sessione aperta, purpleheads e Aldeia: `/reload-plugins` (o sessione nuova) e
    controllare che compaia il riquadro LIMITE 5 ORE.
 2. In Bolo, `/reload-plugins` e verificare che `instagram-marketing` compaia tra le skill.
 3. Caricare a mano `docs/media/social-github.png` in GitHub → Settings → General → Social preview.
+
+0c. Vetrina (`docs/index.html`): il pre-delivery-gate del 2026-10-19 segnala meta description di
+   167 caratteri (max 160), 3 sezioni senza `.section__inner`, 2 `<h2>` senza ruolo, colori della
+   legenda in linea. Vecchie, non della 0.3.3: da sistemare in un commit a parte.
 
 ## Decisioni
 - 2026-10-10: render deterministico, l'ora del disegno non è mai `$.clock.now()`.
