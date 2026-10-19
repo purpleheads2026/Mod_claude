@@ -19,6 +19,7 @@ sempre con lui. Regole del fronte in `CLAUDE.md`, stato del lavoro in `STATO.md`
 | --- | --- | --- |
 | **Installata dalla repo** | `$CLAUDE_CONFIG_DIR/plugins/cache/mod-claude/regia/<versione>/` | Plugin `regia@mod-claude` nel profilo di sviluppo (`$CLAUDE_CONFIG_DIR`; per Samuel il profilo purpleheads). Il marketplace è questa cartella, ma l'engine carica la **copia in cache** fatta all'installazione, non `regia/` (`claude plugin list` mostra `Read from: …/regia`, ed è fuorviante: verificato il 2026-10-13, le sessioni giravano ancora la 0.2.0). Dopo ogni modifica, con la `version` alzata: `claude plugin update regia@mod-claude` (binario del desktop, stesso `CLAUDE_CONFIG_DIR`), poi `/reload-plugins` o una sessione nuova. Il profilo purpleheads ha anche un'installazione con scope project sulla cartella home (nata leggendo `~/.claude/settings.json` come impostazioni di progetto della home): si aggiorna con `--scope project` lanciato da `~`. |
 | Installata da GitHub | `~/.claude/plugins/cache/mod-claude/regia/<versione>/` | Profilo Aldeia (`~/.claude`, app Claude), dal 2026-10-12: marketplace `purpleheads2026/Mod_claude`. Vede solo ciò che è pushato; si aggiorna con `claude plugin update regia@mod-claude` lanciato con il binario dell'app Claude e senza `CLAUDE_CONFIG_DIR`, poi `/reload-plugins`. |
+| VS Code | stessa copia del profilo purpleheads | L'estensione Claude Code per VS Code parte col profilo purpleheads (`claudeCode.environmentVariables` con `CLAUDE_CONFIG_DIR` nelle impostazioni utente di VS Code), quindi carica la Regia installata lì. Superficie `vscode`: stessi monitor SVG del desktop (test dedicato in `tests/regia.test.ts`). Serve l'estensione 2.1.301 o successiva: la 2.1.292 non disegna i pannelli dei plugin. |
 | Sviluppo storico | `$CLAUDE_CONFIG_DIR/dev-mods/<session-id>/regia/` | Copia con hot reload della sola sessione in cui è nato il mod. In quella sessione non lanciare `/reload-plugins`: due copie con lo stesso nome scriverebbero lo stesso stato e conterebbero tutto due volte. `scripts/sync.sh` la riporta nella repo. |
 
 ## Struttura della repo
@@ -78,6 +79,8 @@ Mod_claude/
      del tempo), poi da `svg.ts`: strumentazione (contesto, costo, token, composizione,
      limiti), agenti (schede con lo stesso monogramma del radar), skill, attività
      (corsie che scorrono col tempo), strumenti, file toccati;
+     sui pannelli stretti (VS Code, ~300 px) la strumentazione passa da tre riquadri a righe e
+     la legenda della composizione a una colonna: lo decidono larghezza e lingua, mai i dati;
    - terminale → versione testuale compatta con `Box`/`Text`.
    Tutti i monitor sono immagini (`Svg` senza `isInteractive`): sul desktop un Svg
    interattivo finisce in un iframe alto 150 px che rimpicciolisce l'SVG (visto su uno
@@ -125,7 +128,8 @@ recuperate (`model.skillsBackfilled`): dopo un `/reload-plugins` compaiono subit
 ## Comandi
 
 - `/regia` — apre (o riporta in primo piano) il pannello. Si apre anche da solo a
-  inizio sessione se c'è spazio.
+  inizio sessione se c'è spazio. Se il pannello resta aperto ma non disegnato (una finestra
+  che non disegna i pannelli dei plugin, o troppo stretta) lo dice, con il motivo dell'engine.
 - Nel pannello: **Compatta/Espandi**, **Azzera statistiche**.
 - Status line: "Regia · N agenti in corso" mentre lavorano dei subagenti.
 

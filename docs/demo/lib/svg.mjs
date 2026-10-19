@@ -324,16 +324,46 @@ export const metersSvg = (s               , now        , w        , L         ) 
   let y = BODY_Y - 4
   let body = head(w, L.meters.title)
 
-  tiles.forEach((tile, i) => {
-    const x = PAD + i * (tileW + gap)
-    body +=
-      `<rect x="${x}" y="${y}" width="${tileW}" height="${tileH}" rx="8" fill="${C.raised}"/>` +
-      `<text class="cap" x="${x + 10}" y="${y + 17}">${tile.cap}</text>` +
-      (tile.color === undefined ? '' : `<circle cx="${x + tileW - 12}" cy="${y + 14}" r="3" fill="${tile.color}"/>`) +
-      `<text class="num${tile.value === '—' ? ' dim' : ''}" x="${x + 10}" y="${y + 43}" style="font-size:24px">${esc(tile.value)}</text>` +
-      `<text class="dim small" x="${x + 10}" y="${y + 57}">${esc(fit(tile.sub, tileW - 20, 10))}</text>`
-  })
-  y += tileH + 18
+  // Tre riquadri affiancati solo se etichette e dettagli ci stanno interi; sotto quella
+  // larghezza (un pannello stretto, l'italiano) diventano righe. Lo decidono la larghezza e
+  // la lingua, non i dati: l'altezza non cambia a ogni misura.
+  const capFits = Math.max(...tiles.map(t => textWidth(t.cap, 9.5, 0.16))) + 28 <= tileW
+  const subFits = Math.max(
+    ...[
+      L.meters.notMeasured,
+      L.meters.noLimit,
+      L.meters.windowOpen,
+      '999k / 999k',
+      L.resetsInShort(`23${L.units.h} 59m`), // il dettaglio più lungo del limite: "azzera tra 23h 59m"
+      L.meters.cache('999M'),
+    ].map(t => textWidth(t, 10)),
+  ) + 20 <= tileW
+
+  if (capFits && subFits) {
+    tiles.forEach((tile, i) => {
+      const x = PAD + i * (tileW + gap)
+      body +=
+        `<rect x="${x}" y="${y}" width="${tileW}" height="${tileH}" rx="8" fill="${C.raised}"/>` +
+        `<text class="cap" x="${x + 10}" y="${y + 17}">${tile.cap}</text>` +
+        (tile.color === undefined ? '' : `<circle cx="${x + tileW - 12}" cy="${y + 14}" r="3" fill="${tile.color}"/>`) +
+        `<text class="num${tile.value === '—' ? ' dim' : ''}" x="${x + 10}" y="${y + 43}" style="font-size:24px">${esc(tile.value)}</text>` +
+        `<text class="dim small" x="${x + 10}" y="${y + 57}">${esc(fit(tile.sub, tileW - 20, 10))}</text>`
+    })
+    y += tileH + 18
+  } else {
+    const rowH = 40
+    tiles.forEach((tile, i) => {
+      const ty = y + i * (rowH + gap)
+      const valueW = textWidth(tile.value, 20)
+      body +=
+        `<rect x="${PAD}" y="${ty}" width="${inner}" height="${rowH}" rx="8" fill="${C.raised}"/>` +
+        `<text class="cap" x="${PAD + 10}" y="${ty + 16}">${tile.cap}</text>` +
+        `<text class="dim small" x="${PAD + 10}" y="${ty + 31}">${esc(fit(tile.sub, inner - valueW - 44, 10))}</text>` +
+        (tile.color === undefined ? '' : `<circle cx="${w - PAD - 20 - valueW}" cy="${ty + 20}" r="3" fill="${tile.color}"/>`) +
+        `<text class="num${tile.value === '—' ? ' dim' : ''}" x="${w - PAD - 12}" y="${ty + 27}" text-anchor="end" style="font-size:20px">${esc(tile.value)}</text>`
+    })
+    y += tiles.length * (rowH + gap) - gap + 18
+  }
 
   {
     // Composizione del contesto: conversazione in inchiostro, overhead di sistema in
@@ -366,31 +396,41 @@ export const metersSvg = (s               , now        , w        , L         ) 
       body += rest + `<g${grow(growFrom)}>${used}</g>`
       y += 28
       const named = slices.filter(sl => sl.kind === 'used').slice(0, 4)
-      const colW = inner / 2
+      // Due colonne solo se ogni nome ci sta intero: "System t…" e "System p…" non si distinguono.
+      const cols = named.every(sl => textWidth(sl.name, 11) <= inner / 2 - 70) ? 2 : 1
+      const colW = inner / cols
       named.forEach((sl, i) => {
-        const cx = PAD + (i % 2) * colW
-        const cy = y + Math.floor(i / 2) * 16
+        const cx = PAD + (i % cols) * colW
+        const cy = y + Math.floor(i / cols) * 16
         const isTalk = /messag|conversa/i.test(sl.name)
         body +=
           swatch(cx, cy - 8, isTalk ? C.ink : C.system) +
           `<text x="${cx + 14}" y="${cy}">${esc(fit(sl.name, colW - 70))}</text>` +
           `<text class="ink" x="${cx + colW - 12}" y="${cy}" text-anchor="end">${fmtTokens(sl.tokens, L)}</text>`
       })
-      y += Math.ceil(named.length / 2) * 16 + 10
+      y += Math.ceil(named.length / cols) * 16 + 10
     }
 
     // Rate limit: binari sottili; il colore di stato scatta solo oltre soglia.
     if (m.rateLimits.length > 0) {
       body += `<text class="cap" x="${PAD}" y="${y}">${L.meters.limits}</text>`
       y += 16
+      // Colonna del reset a 120 px; sui pannelli stretti subito dopo l'etichetta più lunga.
+      // La sceglie la larghezza, non il tempo che resta: la colonna non salta.
+      const resetX = w < 344
+        ? PAD + Math.max(...m.rateLimits.map(r => textWidth(limitLabel(r.kind, L), 11))) + 14
+        : PAD + 120
       for (const r of m.rateLimits) {
         const p = Math.max(0, Math.min(100, r.percentUsed))
         const span = resetSpan(r.resetsAt, now, L)
-        const reset = span === '' ? '' : L.resetsIn(span)
+        const room = w - PAD - textWidth(`${Math.round(p)}%`, 14) - 10 - resetX
+        const reset = span === ''
+          ? ''
+          : textWidth(L.resetsIn(span), 10) <= room ? L.resetsIn(span) : fit(L.resetsInShort(span), room, 10)
         const prev = m.prev?.limits[r.kind]
         body +=
           `<text x="${PAD}" y="${y}">${esc(limitLabel(r.kind, L))}</text>` +
-          `<text class="dim small" x="${PAD + 120}" y="${y}">${esc(reset)}</text>` +
+          `<text class="dim small" x="${resetX}" y="${y}">${esc(reset)}</text>` +
           `<text class="num" x="${w - PAD}" y="${y}" text-anchor="end" style="font-size:14px">${Math.round(p)}%</text>` +
           `<rect x="${PAD}" y="${y + 6}" width="${inner}" height="4" rx="2" fill="${C.track}"/>` +
           `<rect${grow(prev !== undefined && p > 0 ? prev / p : 0)} x="${PAD}" y="${y + 6}" width="${Math.max(3, (p / 100) * inner)}" height="4" rx="2" fill="${limitColor(p)}"/>`

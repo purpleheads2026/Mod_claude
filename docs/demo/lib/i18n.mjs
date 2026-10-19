@@ -103,6 +103,7 @@
                  
                    
                   
+                                        
                                  
                    
                   
@@ -232,6 +233,7 @@ const en          = {
     title: 'Regia',
     command: 'Open Regia: agents, skills, tools and context in real time',
     opened: 'Regia opened.',
+    notShown: reason => `Regia is open but not on screen yet: ${reason}`,
     status: n => `Regia · ${plural(n, 'agent', 'agents')} running`,
     compact: 'Compact',
     expand: 'Expand',
@@ -363,6 +365,7 @@ const it          = {
     title: 'Regia',
     command: 'Apre la Regia: agenti, skill, strumenti e contesto in tempo reale',
     opened: 'Regia aperta.',
+    notShown: reason => `Regia è aperta ma non ancora sullo schermo: ${reason}`,
     status: n => `Regia · ${n} ${n === 1 ? 'agente' : 'agenti'} in corso`,
     compact: 'Compatta',
     expand: 'Espandi',

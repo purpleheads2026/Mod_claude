@@ -178,9 +178,11 @@ export const register: Register = (on, options) => {
     return next(e)
   })
 
+  // Il pannello può restare aperto ma non disegnato (una finestra che non disegna i pannelli
+  // dei plugin, come l'estensione VS Code prima della 2.1.301): lo si dice, con il motivo.
   on('command.run', { command: 'regia' }, async $ => {
-    await $.ui.open({ id: PANE, title: L.pane.title })
-    return { text: L.pane.opened }
+    const opened = await $.ui.open({ id: PANE, title: L.pane.title })
+    return { text: opened.isPlaced ? L.pane.opened : L.pane.notShown(opened.reason) }
   })
 
   // ── Turni ──────────────────────────────────────────────────────────────────

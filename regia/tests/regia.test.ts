@@ -21,7 +21,7 @@ const monitor = async ($: Engine, which: keyof typeof ALT): Promise<string> => {
   return String(all.find(one => one.props.alt === ALT[which])?.props.source ?? '')
 }
 
-const pane = (bodyColumns: number) =>
+const pane = (bodyColumns: number, placement: 'dock' | 'inline' = 'dock', bodyRows = 60) =>
   ({
     component: 'Pane',
     requestId: 'regia',
@@ -29,8 +29,8 @@ const pane = (bodyColumns: number) =>
       title: 'Regia',
       isFocused: false,
       bodyColumns,
-      placement: 'dock',
-      scroll: { offset: 0, bodyRows: 60 },
+      placement,
+      scroll: { offset: 0, bodyRows },
       view: {},
     },
   }) as const
@@ -56,6 +56,59 @@ test('ogni strumento finisce nello snapshot e nel pannello', async ($, on) => {
     expect(await ui.find({ key: 'compact' })).toBeDefined()
     await ui.unmount()
   }
+})
+
+test('su VS Code il pannello disegna gli stessi monitor e bottoni del desktop', async ($, on) => {
+  mock.clock(on)
+  on('tool.call', () => ({ result: 'ok' as never }))
+  await $.tool.call({ tool: 'Read', file_path: '/repo/src/app.ts' })
+  await $.tool.call({ tool: 'Bash', command: 'npm test' })
+
+  const monitors = async (surface: 'desktop' | 'vscode', p: ReturnType<typeof pane>) => {
+    const ui = await $.ui.mount({ plugin: 'regia', surface, ...p })
+    const alts = (await ui.findAll({ type: 'Svg' })).map(one => String(one.props.alt))
+    const buttons = [await ui.find({ key: 'reset' }), await ui.find({ key: 'compact' })]
+    await ui.unmount()
+    return { alts, buttons }
+  }
+
+  // Pannello laterale come sul desktop, e il pannello in basso di VS Code: largo e basso.
+  for (const p of [pane(90), pane(200, 'inline', 18)]) {
+    const desktop = await monitors('desktop', p)
+    const vscode = await monitors('vscode', p)
+    expect(vscode.alts.length).toBeGreaterThan(0)
+    expect(vscode.alts).toEqual(desktop.alts)
+    expect(vscode.alts).toContain(ALT.radar)
+    for (const button of vscode.buttons) expect(button).toBeDefined()
+  }
+})
+
+test('su un pannello stretto la strumentazione non tronca etichette e dettagli', { options: { language: 'it' } }, async ($, on) => {
+  mock.clock(on)
+  // 40 colonne = 300 px, il minimo (il pannello di VS Code); 90 colonne = 675 px, il desktop.
+  for (const columns of [40, 90]) {
+    const ui = await $.ui.mount({ plugin: 'regia', surface: 'vscode', ...pane(columns) })
+    const all = await ui.findAll({ type: 'Svg' })
+    await ui.unmount()
+    const meters = String(all.find(one => String(one.props.alt).startsWith('Contesto'))?.props.source ?? '')
+    for (const text of ['LIMITE 5 ORE', 'TOKEN USCITA', 'da misurare', 'nessun limite']) {
+      expect(meters).toContain(`>${text}<`)
+    }
+    expect(meters).not.toContain('…')
+  }
+})
+
+test('/regia dice se il pannello è sullo schermo o perché non lo è', async ($, on) => {
+  const origin = { kind: 'composer' } as const
+  on('ui.open', () => ({ value: { isPlaced: false, reason: 'no attached surface draws panes' } }))
+  const hidden = await $.command.run({ command: 'regia', args: '', origin })
+  expect(String(hidden.text)).toContain('not on screen yet: no attached surface draws panes')
+})
+
+test('/regia conferma quando il pannello compare', async ($, on) => {
+  on('ui.open', () => ({ value: { isPlaced: true } }))
+  const shown = await $.command.run({ command: 'regia', args: '', origin: { kind: 'composer' } })
+  expect(String(shown.text)).toBe('Regia opened.')
 })
 
 test('un subagente nasce, lavora e finisce', async ($, on) => {
