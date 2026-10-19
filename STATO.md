@@ -28,9 +28,15 @@ Aggiornato: 2026-10-19 · Sessione: Mod_claude · Regia
   (design-reviewer: nessun troncamento da 250 px in su). Aggiornata nel profilo purpleheads
   (scope user e project). Pushata su GitHub e aggiornata nel profilo Aldeia (scope user).
 
+- 2026-10-19: VS Code diviso in due profili, Purpleheads e Aldeia, scelti in base alla cartella
+  (la configurazione per cartella è del Mac, fuori dal fronte). Il profilo Aldeia (`~/.claude`)
+  chiede il primo login nella finestra, perché l'estensione non usa la sessione dell'app Claude;
+  carica Regia 0.3.3 da `~/.claude/plugins/cache`. Verificato da Samu: Regia aperta e disegnata
+  in entrambe le finestre.
+
 ## Prossimi passi
-0. `/reload-plugins` (o sessione nuova) in VS Code, nel desktop purpleheads e nell'app Aldeia:
-   deve comparire la 0.3.3 con la strumentazione a righe nel pannello stretto.
+0. `/reload-plugins` (o sessione nuova) nel desktop purpleheads e nell'app Aldeia: deve
+   comparire la 0.3.3 con la strumentazione a righe nel pannello stretto (VS Code: fatto).
 0b. A 300 px: in "FILE TOCCATI" titolo e contatore quasi si toccano; in "AGENTI" il nome si
    tronca accanto allo stato (forse voluto). Da decidere.
 1. In ogni sessione aperta, purpleheads e Aldeia: `/reload-plugins` (o sessione nuova) e
